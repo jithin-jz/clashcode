@@ -1,0 +1,80 @@
+@layer base {
+  * {
+    border-color: var(--app-border);
+    box-sizing: border-box;
+  }
+
+  html {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+    font-family: "Inter", "Space Grotesk", sans-serif;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--app-bg);
+    color: var(--app-text);
+    line-height: 1.6;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100%;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    letter-spacing: -0.025em;
+    color: var(--app-text);
+    font-weight: 600;
+  }
+
+  ::selection {
+    background: rgba(108, 99, 255, 0.25);
+    color: #fff;
+  }
+
+  /* Global interactive transitions */
+  button, [role="button"], a {
+    transition: transform 100ms ease, background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+  }
+
+  button:active, [role="button"]:active {
+    transform: scale(0.97);
+  }
+
+  button:disabled, [role="button"][aria-disabled="true"] {
+    transform: none;
+    cursor: not-allowed;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(108, 99, 255, 0.5);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  input, textarea, select {
+    background-color: var(--app-surface);
+    color: var(--app-text);
+    border: 1px solid var(--app-border);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--app-border-strong);
+    box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.12);
+  }
+}

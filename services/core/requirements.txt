@@ -1,0 +1,28 @@
+Django==5.0.9
+djangorestframework==3.16.1
+django-cors-headers==4.9.0
+drf-spectacular==0.27.1
+psycopg2-binary==2.9.9
+dj-database-url==2.3.0
+python-dotenv==1.2.1
+PyJWT==2.10.1
+cryptography>=42.0.0
+requests==2.32.5
+razorpay==1.4.2
+Pillow==10.2.0
+cloudinary==1.41.0
+django-cloudinary-storage==0.3.0
+
+
+# Celery
+celery==5.4.0
+redis==5.0.1
+django-celery-beat==2.6.0
+django-celery-results==2.5.1
+firebase-admin==6.6.0
+gunicorn==23.0.0
+# Razorpay 1.4.x still imports pkg_resources, removed in newer setuptools (>=81)
+setuptools<81
+black==24.10.0
+
+whitenoise==6.7.0

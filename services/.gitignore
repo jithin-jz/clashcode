@@ -1,0 +1,22 @@
+# Secrets
+serviceAccountKey.json
+core/serviceAccountKey.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment
+.env
+core/.env
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+*.log

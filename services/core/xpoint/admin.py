@@ -1,0 +1,1 @@
+"""XP admin registrations."""

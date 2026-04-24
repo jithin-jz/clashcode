@@ -1,0 +1,25 @@
+/* index.css — Central Stylesheet Coordinator */
+
+/* Fonts & Tailwind Core */
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&family=Geist+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+/* Split Modules */
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/theme.css";
+@import "./styles/utilities.css";
+@import "./styles/animations.css";
+
+/* Page Specific Overlays (Small, kept here for now) */
+.app-grid-overlay {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.ds-dot-grid {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

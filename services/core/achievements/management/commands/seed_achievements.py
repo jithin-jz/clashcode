@@ -1,0 +1,122 @@
+"""
+Management command to seed default achievements into the database.
+Run with: python manage.py seed_achievements
+"""
+
+from django.core.management.base import BaseCommand
+from achievements.models import Achievement
+
+ACHIEVEMENTS = [
+    # Challenge
+    {
+        "slug": "first-blood",
+        "title": "First Blood",
+        "description": "Complete your first challenge",
+        "icon": "Zap",
+        "category": "challenge",
+        "xp_reward": 25,
+        "order": 1,
+    },
+    {
+        "slug": "rising-coder",
+        "title": "Rising Coder",
+        "description": "Complete 5 challenges",
+        "icon": "TrendingUp",
+        "category": "challenge",
+        "xp_reward": 50,
+        "order": 2,
+    },
+    {
+        "slug": "challenge-veteran",
+        "title": "Challenge Veteran",
+        "description": "Complete 10 challenges",
+        "icon": "Medal",
+        "category": "challenge",
+        "xp_reward": 100,
+        "order": 3,
+    },
+    {
+        "slug": "legend",
+        "title": "Legend",
+        "description": "Complete 25 challenges",
+        "icon": "Crown",
+        "category": "challenge",
+        "xp_reward": 250,
+        "order": 4,
+    },
+    {
+        "slug": "speed-demon",
+        "title": "Speed Demon",
+        "description": "Solve a challenge in under 2 minutes",
+        "icon": "Flame",
+        "category": "challenge",
+        "xp_reward": 75,
+        "order": 5,
+    },
+    {
+        "slug": "perfectionist",
+        "title": "Perfectionist",
+        "description": "Earn 3 stars on a challenge",
+        "icon": "Star",
+        "category": "challenge",
+        "xp_reward": 50,
+        "order": 6,
+    },
+    # Streak
+    {
+        "slug": "streak-starter",
+        "title": "Streak Starter",
+        "description": "Maintain a 3-day login streak",
+        "icon": "Calendar",
+        "category": "streak",
+        "xp_reward": 30,
+        "order": 10,
+    },
+    {
+        "slug": "streak-master",
+        "title": "Streak Master",
+        "description": "Maintain a 7-day login streak",
+        "icon": "Flame",
+        "category": "streak",
+        "xp_reward": 100,
+        "order": 11,
+    },
+    # Social
+    {
+        "slug": "socializer",
+        "title": "Socializer",
+        "description": "Follow your first user",
+        "icon": "UserPlus",
+        "category": "social",
+        "xp_reward": 10,
+        "order": 20,
+    },
+    {
+        "slug": "networker",
+        "title": "Networker",
+        "description": "Follow 10 users",
+        "icon": "Users",
+        "category": "social",
+        "xp_reward": 50,
+        "order": 21,
+    },
+]
+
+
+class Command(BaseCommand):
+    help = "Seed default achievements into the database"
+
+    def handle(self, *args, **options):
+        created_count = 0
+        for data in ACHIEVEMENTS:
+            _, created = Achievement.objects.update_or_create(
+                slug=data["slug"], defaults=data
+            )
+            if created:
+                created_count += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Seeded {len(ACHIEVEMENTS)} achievements ({created_count} new)"
+            )
+        )

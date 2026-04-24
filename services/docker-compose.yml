@@ -1,0 +1,123 @@
+services:
+  # ---------------- API GATEWAY ----------------
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+
+  # ---------------- DATABASES ----------------
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=clashcode_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d clashcode_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - default
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - default
+
+  dynamodb:
+    image: amazon/dynamodb-local
+    restart: unless-stopped
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ."
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
+    ports:
+      - "8008:8000"
+    networks:
+      - default
+
+  chroma:
+    image: chromadb/chroma:1.4.1
+    restart: unless-stopped
+    ports:
+      - "8010:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+    volumes:
+      - chroma_data:/chroma/data
+    networks:
+      - default
+
+  # ---------------- APPLICATION SERVICES ----------------
+  core:
+    build: ./core
+    restart: unless-stopped
+    env_file: ./core/.env
+    environment:
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - default
+
+  chat:
+    build: ./chat
+    restart: unless-stopped
+    env_file: ./chat/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DYNAMODB_URL=http://dynamodb:8000
+    depends_on:
+      - redis
+      - dynamodb
+    networks:
+      - default
+
+  ai:
+    build: ./ai
+    restart: unless-stopped
+    env_file: ./ai/.env
+    environment:
+      - CORE_SERVICE_URL=http://core:8000
+      - CHROMA_SERVER_HOST=chroma
+      - CHROMA_SERVER_HTTP_PORT=8000
+    depends_on:
+      - core
+      - chroma
+    networks:
+      - default
+
+networks:
+  default:
+    name: clashcode_network
+
+volumes:
+  postgres_data:
+  chroma_data:
+  dynamodb_data:
