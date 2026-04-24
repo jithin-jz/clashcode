@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { BookOpen, Terminal, Bot, Sparkles, Gem } from "lucide-react";
+import { BookOpen, Terminal, Bot, Sparkles, Gem, Play } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -32,8 +32,9 @@ const ChallengeWorkspace = () => {
   const [isLoadingChallenge, setIsLoadingChallenge] = useState(true);
   const [output, setOutput] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastRunPassed, setLastRunPassed] = useState(false);
   const { user } = useAuthStore();
-  const [isPyodideReady, setPyodideReady] = useState(false);
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
 
@@ -236,10 +237,13 @@ const ChallengeWorkspace = () => {
     const fetchChallenge = async () => {
       setIsLoadingChallenge(true);
       try {
-        // Reset AI state on challenge change
+        // Reset state on challenge change
         setHint("");
         setHintLevel(1);
         setReview("");
+        setOutput([]);
+        setLastRunPassed(false);
+        setCompletionData(null);
 
         // Dynamic Import
         const { challengesApi } = await import("../services/challengesApi");
@@ -280,110 +284,120 @@ const ChallengeWorkspace = () => {
     fetchChallenge();
   }, [id, navigate]);
 
-  const workerRef = useRef(null);
-
   const submitCode = useCallback(async () => {
-    const { challengesApi } = await import("../services/challengesApi");
-    const result = await challengesApi.submit(id);
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setLastRunPassed(false);
+    setOutput([{ type: "log", content: "🚀 Initiating server-side validation..." }]);
 
-    if (result.xp_earned && result.xp_earned > 0) {
-      const { setUser } = useAuthStore.getState();
-      const currentUser = useAuthStore.getState().user;
-      if (currentUser) {
-        setUser({
-          ...currentUser,
-          profile: {
-            ...currentUser.profile,
-            xp: (currentUser.profile.xp || 0) + result.xp_earned,
-          },
-        });
-      }
-    }
+    try {
+      const { challengesApi } = await import("../services/challengesApi");
+      const result = await challengesApi.submit(id, code);
 
-    if (
-      result.status === "completed" ||
-      result.status === "already_completed"
-    ) {
-      // Sync challenge progression cache immediately for responsive navigation/map updates.
-      useChallengesStore.getState().applySubmissionResult(id, result);
-      // Background refresh to reconcile any derived backend annotations.
-      void useChallengesStore.getState().ensureFreshChallenges(0);
-      setChallenge((prev) =>
-        prev
-          ? { ...prev, status: "COMPLETED", stars: result.stars || prev.stars }
-          : prev,
-      );
-
-      const starText = "⭐".repeat(result.stars || 0);
-      setOutput([
-        {
-          type: "success",
-          content: `🎉 Challenge Completed! ${starText}`,
-        },
-      ]);
-      if (result.xp_earned > 0) {
-        setOutput((prev) => [
-          ...prev,
-          {
-            type: "success",
-            content: `💪 Earned: +${result.xp_earned}`,
-          },
-        ]);
-      }
-      setCompletionData(result);
-    }
-  }, [id]);
-
-  const onWorkerMessage = useCallback(
-    async (event) => {
-      const { type, content, passed } = event.data;
-
-      if (type === "ready") {
-        setPyodideReady(true);
-      } else if (type === "log") {
-        setOutput((prev) => [...prev, { type: "log", content }]);
-      } else if (type === "error") {
-        setOutput((prev) => [...prev, { type: "error", content }]);
-      } else if (type === "success") {
-        setOutput((prev) => [...prev, { type: "success", content }]);
-      } else if (type === "completed") {
-        setIsRunning(false);
-        if (passed) {
-          try {
-            await submitCode();
-          } catch (err) {
-            console.error("Submission error:", err);
-            const errorMsg =
-              err.response?.data?.error ||
-              "Submission failed. Please try again.";
-            setOutput((prev) => [
-              ...prev,
-              { type: "error", content: errorMsg },
-            ]);
-          }
+      if (result.xp_earned && result.xp_earned > 0) {
+        const { setUser } = useAuthStore.getState();
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          setUser({
+            ...currentUser,
+            profile: {
+              ...currentUser.profile,
+              xp: (currentUser.profile.xp || 0) + result.xp_earned,
+            },
+          });
         }
       }
-    },
-    [submitCode],
-  );
 
-  const initWorker = useCallback(() => {
-    if (workerRef.current) {
-      workerRef.current.terminate();
+      if (result.status === "completed" || result.status === "already_completed") {
+        useChallengesStore.getState().applySubmissionResult(id, result);
+        void useChallengesStore.getState().ensureFreshChallenges(0);
+        setChallenge((prev) =>
+          prev
+            ? { ...prev, status: "COMPLETED", stars: result.stars || prev.stars }
+            : prev,
+        );
+
+        const starText = "⭐".repeat(result.stars || 0);
+        setOutput([
+          {
+            type: "success",
+            content: `🎉 Challenge Completed! ${starText}`,
+          },
+        ]);
+        if (result.xp_earned > 0) {
+          setOutput((prev) => [
+            ...prev,
+            {
+              type: "success",
+              content: `💪 Earned: +${result.xp_earned}`,
+            },
+          ]);
+        }
+        setCompletionData(result);
+      }
+    } catch (err) {
+      console.error("Submission error:", err);
+      const errorData = err.response?.data;
+      const errorMsg = errorData?.error || "Submission failed. Please try again.";
+      
+      setOutput((prev) => [
+        ...prev,
+        { type: "error", content: `❌ ${errorMsg}` },
+      ]);
+
+      if (errorData?.stderr) {
+        setOutput((prev) => [
+          ...prev,
+          { type: "error", content: errorData.stderr },
+        ]);
+      }
+      if (errorData?.stdout) {
+        setOutput((prev) => [
+          ...prev,
+          { type: "log", content: errorData.stdout },
+        ]);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    const worker = new Worker(`/pyodideWorker.js?v=${Date.now()}`);
-    worker.onmessage = onWorkerMessage;
-    workerRef.current = worker;
-    setPyodideReady(false);
-  }, [onWorkerMessage]);
+  }, [id, code, isSubmitting]);
 
-  // Initialize Worker
-  useEffect(() => {
-    initWorker();
-    return () => {
-      if (workerRef.current) workerRef.current.terminate();
-    };
-  }, [initWorker]);
+  const runCode = useCallback(async () => {
+    if (isRunning) return;
+    setIsRunning(true);
+    setLastRunPassed(false);
+    setOutput([{ type: "log", content: "⚙️ Executing code on Piston server..." }]);
+
+    try {
+      const { challengesApi } = await import("../services/challengesApi");
+      const data = await challengesApi.execute(id, code);
+
+      if (data.stdout) {
+        setOutput((prev) => [...prev, { type: "log", content: data.stdout }]);
+      }
+      if (data.stderr) {
+        setOutput((prev) => [...prev, { type: "error", content: data.stderr }]);
+      }
+      if (!data.stdout && !data.stderr) {
+        setOutput((prev) => [...prev, { type: "log", content: "Execution finished with no output." }]);
+      }
+
+      if (data.passed) {
+        setLastRunPassed(true);
+        setOutput((prev) => [...prev, { type: "success", content: "✅ Local tests passed! Ready for submission." }]);
+      } else {
+        setLastRunPassed(false);
+        setOutput((prev) => [...prev, { type: "error", content: "⚠️ Local tests failed." }]);
+      }
+    } catch (err) {
+      console.error("Execution error:", err);
+      const errorMsg = err.response?.data?.error || "Execution failed. Server might be down.";
+      setOutput((prev) => [...prev, { type: "error", content: `❌ ${errorMsg}` }]);
+    } finally {
+      setIsRunning(false);
+    }
+  }, [id, code, isRunning]);
+
 
   const applyEditorPreferences = useCallback(() => {
     if (!editorRef.current || !monacoRef.current) return;
@@ -594,46 +608,16 @@ const ChallengeWorkspace = () => {
     applyEditorPreferences();
   }, [applyEditorPreferences]);
 
-  const runCode = useCallback(() => {
-    if (isRunning) return;
 
-    setIsRunning(true);
-    setOutput([]);
-
-    // Pyodide validation needs challenge test code on the client.
-    if (!challenge?.test_code) {
-      setOutput([
-        {
-          type: "error",
-          content: "No test code configured for this challenge.",
-        },
-      ]);
-      setIsRunning(false);
-      return;
-    }
-
-    // Run hidden tests client-side with Pyodide, then submit completion.
-    if (!workerRef.current) {
-      setIsRunning(false);
-      setOutput([{ type: "error", content: "Runtime not ready." }]);
-      return;
-    }
-
-    workerRef.current.postMessage({
-      type: "validate",
-      code,
-      testCode: challenge.test_code,
-    });
-  }, [code, challenge, isRunning]);
 
   const stopCode = useCallback(() => {
-    initWorker();
     setIsRunning(false);
+    setIsSubmitting(false);
     setOutput((prev) => [
       ...prev,
-      { type: "error", content: "⛔ Execution Terminated by User" },
+      { type: "error", content: "⛔ Connection Interrupted by User" },
     ]);
-  }, [initWorker]);
+  }, []);
 
   // Show skeleton while loading challenge data
   if (isLoadingChallenge) {
@@ -746,9 +730,8 @@ const ChallengeWorkspace = () => {
         <HeaderBar
           title={challenge?.title || "Loading..."}
           navigate={navigate}
-          isPyodideReady={isPyodideReady}
           isRunning={isRunning}
-          runCode={runCode}
+          isSubmitting={isSubmitting}
           stopCode={stopCode}
         />
       </div>
@@ -783,14 +766,78 @@ const ChallengeWorkspace = () => {
                 }
               />
             </div>
+            
+            {/* Action Bar - Fixed between editor and console */}
+            <div className="shrink-0 h-11 bg-[#0a0a0a] border-t border-white/5 flex items-center justify-between px-4">
+              <div className="flex items-center gap-4 text-zinc-500">
+                <div className="flex items-center gap-1.5 opacity-50">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                   <span className="text-[9px] font-bold uppercase tracking-widest">Piston-v2 Active</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={runCode}
+                  disabled={isRunning || isSubmitting || !challenge}
+                  className={`
+                    h-7 px-4 rounded border border-white/10 transition-all flex items-center gap-2
+                    ${isRunning || isSubmitting || !challenge 
+                      ? "opacity-50 cursor-not-allowed text-zinc-600" 
+                      : "bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white active:scale-95"}
+                  `}
+                >
+                  {isRunning ? (
+                    <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Play size={10} fill="currentColor" />
+                  )}
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Run</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={submitCode}
+                  disabled={isRunning || isSubmitting || !challenge}
+                  className={`
+                    h-7 px-5 rounded relative overflow-hidden transition-all flex items-center gap-2
+                    ${isRunning || isSubmitting || !challenge 
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
+                      : lastRunPassed
+                        ? "bg-emerald-500 text-white hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                        : "bg-white text-black hover:bg-zinc-200 shadow-[0_0_20px_rgba(255,255,255,0.05)]"}
+                    active:scale-95
+                  `}
+                >
+                  {isSubmitting ? (
+                    <div className="w-2.5 h-2.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  ) : (
+                    <Sparkles size={10} fill="currentColor" />
+                  )}
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Submit</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Console Card */}
           <div className="h-[35%] sm:h-[32%] min-h-[180px] flex flex-col bg-black border-t border-white/5">
             <div className="px-3 py-2 border-b border-white/5 bg-black flex justify-between items-center h-8">
-              <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase font-sans">
-                Terminal
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase font-sans">
+                  Terminal
+                </span>
+                {output.length > 0 && (
+                   <button 
+                    onClick={() => setOutput([])}
+                    className="p-1 hover:bg-white/5 rounded transition-colors text-zinc-600 hover:text-zinc-400"
+                    title="Clear Console"
+                   >
+                     <Terminal size={10} />
+                   </button>
+                )}
+              </div>
               {output.some((l) => l.type === "error") && (
                 <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-red-400" /> Error

@@ -113,6 +113,18 @@ services:
     networks:
       - default
 
+  # ---------------- CODE EXECUTION ----------------
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "2000:2000"
+    volumes:
+      - piston_data:/piston/packages
+    networks:
+      - default
+
 networks:
   default:
     name: clashcode_network
@@ -121,3 +133,4 @@ volumes:
   postgres_data:
   chroma_data:
   dynamodb_data:
+  piston_data:

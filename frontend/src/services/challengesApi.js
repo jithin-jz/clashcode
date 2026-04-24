@@ -41,12 +41,13 @@ export const challengesApi = {
     const response = await api.get(`/challenges/${slug}/`);
     return response.data;
   },
-  submit: async (slug, data = {}) => {
-    const payload = { ...(data || {}), passed: true };
-    const response = await api.post(
-      `/challenges/${slug}/submit/?passed=true`,
-      payload,
-    );
+  submit: async (slug, code) => {
+    const payload = { code };
+    const response = await api.post(`/challenges/${slug}/submit/`, payload);
+    return response.data;
+  },
+  execute: async (slug, code) => {
+    const response = await api.post(`/challenges/${slug}/execute/`, { code });
     return response.data;
   },
   purchaseAIHint: async (slug) => {
