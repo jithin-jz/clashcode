@@ -3,7 +3,7 @@ import useAuthStore from "../stores/useAuthStore";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { Github, Chrome, ArrowLeft } from "lucide-react";
+import { Github, Chrome, ArrowLeft, Mail, Lock } from "lucide-react";
 import { Skeleton } from "boneyard-js/react";
 
 const Login = () => {
@@ -127,14 +127,15 @@ const Login = () => {
                   className="space-y-4"
                 >
                   <div>
-                    <label className="ds-eyebrow block mb-2">Email address</label>
-                    <div className="relative">
+                    <label className="ds-eyebrow block mb-2 opacity-60">Email address</label>
+                    <div className="ds-input-icon-wrapper">
+                      <Mail className="ds-input-icon" size={16} />
                       <input
                         type="email"
-                        placeholder="Email address"
+                        placeholder="name@workspace.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="ds-input h-10"
+                        className="ds-input ds-input-with-icon h-11"
                         required
                         id="login-email"
                       />
@@ -144,7 +145,7 @@ const Login = () => {
                   <button
                     type="submit"
                     disabled={isOtpLoading || otpCooldownSeconds > 0}
-                    className="ds-btn ds-btn-primary w-full h-10 rounded-lg disabled:opacity-50"
+                    className="ds-btn ds-btn-primary w-full h-11 rounded-xl disabled:opacity-50"
                     id="login-send-otp"
                   >
                     {isOtpLoading
@@ -176,26 +177,29 @@ const Login = () => {
                   </button>
 
                   <div>
-                    <label className="ds-eyebrow block mb-1">
+                    <label className="ds-eyebrow block mb-1 opacity-60">
                       Verification code
                     </label>
-                    <p className="text-[11px] text-neutral-600 mb-3">
+                    <p className="text-[11px] text-neutral-600 mb-4">
                       Code sent to{" "}
                       <span className="text-neutral-300 font-medium">
                         {email}
                       </span>
                     </p>
-                    <input
-                      type="text"
-                      placeholder="000 000"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      maxLength={6}
-                      className="ds-input h-12 text-center font-['JetBrains_Mono',monospace] text-xl font-bold tracking-[0.35em] placeholder:tracking-normal"
-                      required
-                      id="login-otp-input"
-                      autoFocus
-                    />
+                    <div className="ds-input-icon-wrapper">
+                      <Lock className="ds-input-icon" size={16} />
+                      <input
+                        type="text"
+                        placeholder="000 000"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        maxLength={6}
+                        className="ds-input ds-input-with-icon h-12 text-center font-['JetBrains_Mono',monospace] text-xl font-bold tracking-[0.35em] placeholder:tracking-normal"
+                        required
+                        id="login-otp-input"
+                        autoFocus
+                      />
+                    </div>
                   </div>
 
                   <button
@@ -224,20 +228,20 @@ const Login = () => {
                 type="button"
                 onClick={() => openOAuthPopup("github")}
                 disabled={loading || isOAuthLoading}
-                className="ds-btn ds-btn-secondary h-10 rounded-lg text-sm gap-2 disabled:opacity-50"
+                className="ds-btn ds-btn-secondary group h-11 rounded-xl text-sm gap-2 disabled:opacity-50"
                 id="login-github"
               >
-                <Github size={15} className="text-neutral-500" />
+                <Github size={16} className="text-neutral-500 group-hover:text-white transition-colors" />
                 GitHub
               </button>
               <button
                 type="button"
                 onClick={() => openOAuthPopup("google")}
                 disabled={loading || isOAuthLoading}
-                className="ds-btn ds-btn-secondary h-10 rounded-lg text-sm gap-2 disabled:opacity-50"
+                className="ds-btn ds-btn-secondary group h-11 rounded-xl text-sm gap-2 disabled:opacity-50"
                 id="login-google"
               >
-                <Chrome size={15} className="text-neutral-500" />
+                <Chrome size={16} className="text-neutral-500 group-hover:text-white transition-colors" />
                 Google
               </button>
             </div>

@@ -108,9 +108,9 @@ const ChatInput = ({
           onClick={handleSend}
           className={`group relative flex items-center justify-center h-10 w-10 min-w-10 rounded-xl transition-all duration-500 overflow-hidden ${
             inputMessage.trim()
-              ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95"
-              : "bg-white/[0.03] text-neutral-700 border border-transparent"
-          } disabled:opacity-10`}
+              ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95 border-transparent"
+              : "bg-white/5 text-neutral-400 border border-white/10 hover:border-white/20 hover:text-white"
+          } disabled:cursor-not-allowed`}
         >
           {inputMessage.trim() && (
             <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

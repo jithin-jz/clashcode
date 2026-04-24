@@ -84,7 +84,7 @@ const HomeTopNav = ({
           className={`
             pointer-events-auto grid h-12 w-full grid-cols-[1fr_auto_1fr] items-center px-7 sm:px-9
             transition-all duration-300 ease-in-out
-            ${isScrolled ? "bg-glass-premium border-b border-white/10 h-14" : "app-top-nav"}
+            app-top-nav ${isScrolled ? "h-14" : "h-12"}
           `}
         >
           {/* LEFT */}

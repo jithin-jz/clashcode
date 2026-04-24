@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Users, Plus } from "lucide-react";
 import { Skeleton } from "boneyard-js/react";
@@ -12,6 +12,7 @@ import {
   DialogFooter,
 } from "../components/ui/dialog";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 
 // Components
 import CreatePostDialog from "../posts/CreatePostDialog";
@@ -29,7 +30,7 @@ import { useProfile } from "../hooks/useProfile";
 const Profile = () => {
   const navigate = useNavigate();
   const { username } = useParams();
-  
+
   const {
     currentUser,
     profileUser,
@@ -46,29 +47,31 @@ const Profile = () => {
     savingProfile,
     deleteDialogOpen,
     setDeleteDialogOpen,
-    copied,
-    referralCodeInput,
-    setReferralCodeInput,
-    isRedeeming,
+    handleImageUpload,
+    handleSaveProfile,
+    handleFollowToggle,
+    handleListFollowToggle,
+    handleLogout,
+    confirmDeleteAccount,
+    fetchUserList,
     contributionData,
     loadingContributions,
     listType,
     setListType,
     userList,
     listLoading,
-    handleImageUpload,
-    handleSaveProfile,
-    handleFollowToggle,
-    handleListFollowToggle,
-    handleCopyReferral,
-    handleRedeemReferral,
-    handleLogout,
-    confirmDeleteAccount,
-    fetchUserList,
   } = useProfile(username);
 
-  const [createPostOpen, setCreatePostOpen] = React.useState(false);
-  const [refreshPosts, setRefreshPosts] = React.useState(0);
+  const [createPostOpen, setCreatePostOpen] = useState(false);
+  const [refreshPosts, setRefreshPosts] = useState(0);
+  const editSectionRef = useRef(null);
+
+  // Auto-scroll to edit form when opened
+  useEffect(() => {
+    if (isEditing && editSectionRef.current) {
+      editSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [isEditing]);
 
   if (userNotFound) {
     return (
@@ -95,12 +98,12 @@ const Profile = () => {
   return (
     <Skeleton name="profile-page" loading={loading}>
       <div className="relative w-full pb-20 sm:pb-0 text-white flex flex-col">
-        <main className="relative z-10 flex-1 px-4 sm:px-6 py-4">
-          <div className="max-w-5xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Left Column */}
-              <div className="lg:col-span-1 space-y-4 min-w-0">
-                <Card className="bg-[#141414]/70 border-[#404040]/20 overflow-hidden">
+        <main className="relative z-10 flex-1 px-4 sm:px-10 lg:px-14 py-4">
+          <div className="w-full mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Left Column - Profile Section */}
+              <div className="lg:col-span-4 space-y-6 min-w-0">
+                <Card className="bg-[#0a0a0a]/80 border-[#404040]/20 overflow-visible shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md">
                   <ProfileHeader
                     profileUser={profileUser}
                     isOwnProfile={isOwnProfile}
@@ -111,33 +114,24 @@ const Profile = () => {
                     isEditing={isEditing}
                     handleLogout={handleLogout}
                   />
-                  <ProfileInfo
-                    profileUser={profileUser}
-                    isOwnProfile={isOwnProfile}
-                    handleFollowToggle={handleFollowToggle}
-                    fetchUserList={fetchUserList}
-                  />
+                  <div className="pt-10 sm:pt-12">
+                    <ProfileInfo
+                      profileUser={profileUser}
+                      isOwnProfile={isOwnProfile}
+                      handleFollowToggle={handleFollowToggle}
+                      fetchUserList={fetchUserList}
+                    />
+                  </div>
                 </Card>
-
-                {isOwnProfile && (
-                  <ReferralSection
-                    currentUser={currentUser}
-                    copied={copied}
-                    handleCopyReferral={handleCopyReferral}
-                    referralCodeInput={referralCodeInput}
-                    setReferralCodeInput={setReferralCodeInput}
-                    handleRedeemReferral={handleRedeemReferral}
-                    isRedeeming={isRedeeming}
-                  />
-                )}
               </div>
 
-              {/* Middle Column */}
-              <div className="lg:col-span-2 space-y-4 min-w-0">
+              {/* Middle Column - Feed/Edit */}
+              <div ref={editSectionRef} className="lg:col-span-6 space-y-6 min-w-0">
                 {isEditing && isOwnProfile ? (
                   <EditProfileForm
                     editForm={editForm}
                     setEditForm={setEditForm}
+                    setIsEditing={setIsEditing}
                     uploadingBanner={uploadingBanner}
                     handleImageUpload={handleImageUpload}
                     setDeleteDialogOpen={setDeleteDialogOpen}
@@ -151,9 +145,10 @@ const Profile = () => {
                       loading={loadingContributions}
                     />
                     <div className="flex items-center justify-between mb-4 mt-8">
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        Battle Feed
-                        <span className="text-[10px] bg-white/5 border border-white/10 px-2 py-0.5 rounded-full text-neutral-500 font-mono">
+                      <h3 className="text-xl font-black italic text-white flex items-center gap-3">
+                        <span className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+                        BATTLE FEED
+                        <span className="text-[10px] bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg text-neutral-500 font-mono not-italic tracking-normal">
                           {profileUser?.username}
                         </span>
                       </h3>
@@ -161,9 +156,9 @@ const Profile = () => {
                         <Button
                           size="sm"
                           onClick={() => setCreatePostOpen(true)}
-                          className="bg-white text-black hover:bg-zinc-200 h-8 gap-2 rounded-lg font-bold text-xs"
+                          className="bg-white text-black hover:bg-zinc-200 h-9 gap-2 rounded-xl font-bold text-xs shadow-lg"
                         >
-                          <Plus size={14} /> New Post
+                          <Plus size={16} /> NEW POST
                         </Button>
                       )}
                     </div>
@@ -176,15 +171,15 @@ const Profile = () => {
               </div>
 
               {/* Right Column - Suggestions */}
-              <div className="lg:col-span-1 space-y-4 hidden lg:block">
+              <div className="lg:col-span-2 space-y-6 hidden lg:block">
                 {isOwnProfile && suggestedUsers.length > 0 && (
-                  <Card className="bg-[#141414]/70 border-[#404040]/20">
-                    <CardHeader className="p-4 border-b border-white/5">
-                      <CardTitle className="text-xs font-bold uppercase tracking-widest text-neutral-500">
+                  <Card className="bg-[#0a0a0a]/60 border-[#404040]/20 backdrop-blur-sm">
+                    <CardHeader className="p-3 border-b border-white/5">
+                      <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500/80">
                         Suggested For You
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 space-y-4">
+                    <CardContent className="p-3 space-y-3">
                       {suggestedUsers.slice(0, 5).map((u) => (
                         <div
                           key={u.username}
@@ -192,13 +187,16 @@ const Profile = () => {
                           onClick={() => navigate(`/profile/${u.username}`)}
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-9 w-9 rounded-full bg-zinc-800 border border-white/5 overflow-hidden">
-                              <img
-                                src={u.profile?.avatar_url}
-                                alt=""
-                                className="w-full h-full object-cover"
+                            <Avatar className="h-9 w-9 border border-white/5">
+                              <AvatarImage
+                                src={u.avatar_url || u.profile?.avatar_url}
+                                alt={u.username}
+                                className="object-cover"
                               />
-                            </div>
+                              <AvatarFallback className="bg-zinc-800 text-[10px] font-bold text-white">
+                                {u.username?.[0]?.toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
                             <div className="min-w-0">
                               <div className="text-xs font-bold text-white truncate">
                                 {u.username}

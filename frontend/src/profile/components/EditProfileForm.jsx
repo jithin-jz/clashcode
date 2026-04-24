@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/button";
 const EditProfileForm = ({
   editForm,
   setEditForm,
+  setIsEditing,
   uploadingBanner,
   handleImageUpload,
   setDeleteDialogOpen,
@@ -15,100 +16,113 @@ const EditProfileForm = ({
   const bannerInputRef = useRef(null);
 
   return (
-    <Card className="bg-[#141414]/70 border-[#404040]/20">
-      <CardHeader className="p-4 border-b border-white/5">
-        <CardTitle className="text-sm font-medium">Edit Profile</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center justify-between px-1">
+        <h2 className="text-xl font-black italic tracking-tighter text-white flex items-center gap-3">
+          <span className="w-2 h-6 bg-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+          EDIT PROFILE
+        </h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsEditing(false)}
+          className="text-neutral-500 hover:text-white text-[10px] font-bold uppercase tracking-widest"
+        >
+          Discard Changes
+        </Button>
+      </div>
+
+      <Card className="bg-[#141414]/70 border-[#404040]/20 shadow-[0_0_100px_rgba(16,185,129,0.05)] relative group">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+        
+        <CardContent className="p-6 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 ml-1">First Name</label>
+              <input
+                type="text"
+                value={editForm.first_name}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, first_name: e.target.value })
+                }
+                placeholder="First Name"
+                className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/30 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-neutral-700"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 ml-1">Last Name</label>
+              <input
+                type="text"
+                value={editForm.last_name}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, last_name: e.target.value })
+                }
+                placeholder="Last Name"
+                className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/30 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-neutral-700"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <label className="text-xs text-neutral-400">First Name</label>
-            <input
-              type="text"
-              value={editForm.first_name}
-              onChange={(e) =>
-                setEditForm({ ...editForm, first_name: e.target.value })
-              }
-              className="w-full bg-[#1a1a1a]/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/25"
+            <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 ml-1">Display Username</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={editForm.username}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, username: e.target.value })
+                }
+                className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/30 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
+              />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-neutral-600 font-mono">
+                @handle
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 ml-1">Bio / Status</label>
+            <textarea
+              value={editForm.bio}
+              onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+              className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/30 focus:ring-1 focus:ring-emerald-500/20 transition-all min-h-[100px] resize-none placeholder:text-neutral-700"
+              placeholder="Tell the world your coding story..."
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-xs text-neutral-400">Last Name</label>
-            <input
-              type="text"
-              value={editForm.last_name}
-              onChange={(e) =>
-                setEditForm({ ...editForm, last_name: e.target.value })
-              }
-              className="w-full bg-[#1a1a1a]/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/25"
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs text-neutral-400">Username</label>
-          <input
-            type="text"
-            value={editForm.username}
-            onChange={(e) =>
-              setEditForm({ ...editForm, username: e.target.value })
-            }
-            className="w-full bg-[#1a1a1a]/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/25"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs text-neutral-400">Bio</label>
-          <textarea
-            value={editForm.bio}
-            onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-            className="w-full bg-[#1a1a1a]/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/25 min-h-[80px] resize-none"
-            placeholder="Write something about yourself..."
-          />
-        </div>
 
-        <div className="flex items-center justify-between p-3 bg-[#1a1a1a]/30 rounded-lg">
-          <div className="flex items-center gap-3">
-            <Camera size={16} className="text-neutral-400" />
-            <span className="text-sm text-neutral-300">Profile Banner</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={uploadingBanner}
-            onClick={() => bannerInputRef.current?.click()}
-            className="text-xs text-neutral-300 hover:text-white"
-          >
-            {uploadingBanner ? "Saving..." : "Change"}
-          </Button>
-          <input
-            type="file"
-            ref={bannerInputRef}
-            className="hidden"
-            accept="image/*"
-            onChange={(e) => handleImageUpload(e, "banner")}
-          />
-        </div>
-
-        <div className="flex items-center justify-between pt-4 border-t border-white/5">
-          <Button
-            variant="ghost"
-            onClick={() => setDeleteDialogOpen(true)}
-            className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs"
-          >
-            Delete Account
-          </Button>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={handleSaveProfile}
-              disabled={savingProfile}
-              className="bg-white text-black hover:bg-zinc-200 h-9 px-6 font-bold"
+          <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6 pb-2">
+            <button
+              onClick={() => setDeleteDialogOpen(true)}
+              className="text-red-500/50 hover:text-red-500 text-[10px] font-bold uppercase tracking-widest transition-colors"
             >
-              {savingProfile ? "Saving..." : "Save Changes"}
-            </Button>
+              Terminate Account
+            </button>
+            
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="ghost"
+                onClick={() => setIsEditing(false)}
+                className="flex-1 sm:flex-none text-neutral-400 hover:text-white hover:bg-white/5 h-10 px-6 rounded-xl font-bold text-[11px]"
+              >
+                CANCEL
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                className="flex-1 sm:flex-none bg-emerald-500 text-black hover:bg-emerald-400 h-10 px-6 rounded-xl font-black text-[11px] shadow-[0_0_20px_rgba(16,185,129,0.2)] transition-all active:scale-95 whitespace-nowrap"
+              >
+                {savingProfile ? (
+                  <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                ) : (
+                  "DEPLOY CHANGES"
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

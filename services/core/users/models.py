@@ -192,5 +192,5 @@ def create_user_profile(sender, instance, created, **kwargs):
             user=instance,
             provider="local",
             provider_id=f"local_{instance.id}",
-            bio="Administrator" if instance.is_superuser else "User",
+            bio="",
         )

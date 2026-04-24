@@ -110,20 +110,6 @@ TEMPLATES = [
 # WSGI
 WSGI_APPLICATION = "project.wsgi.application"
 
-# Supabase
-
-# DATABASE_URL = os.getenv("DATABASE_URL")
-# if not DATABASE_URL:
-#     raise ImproperlyConfigured("DATABASE_URL is not set")
-
-# DATABASES = {
-#     "default": dj_database_url.config(
-#         default=DATABASE_URL,
-#         conn_max_age=600,
-#     )
-# }
-
-# pgadmin
 
 DATABASES = {
     "default": {

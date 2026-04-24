@@ -27,7 +27,7 @@ const SiteFooter = () => {
 
   return (
     <footer className="w-full border-t border-white/20 bg-black relative z-10">
-      <div className="max-w-6xl mx-auto px-7 sm:px-9 py-3 flex items-center justify-between gap-4 overflow-x-auto">
+      <div className="w-full px-7 sm:px-10 lg:px-14 py-3 flex items-center justify-between gap-4 overflow-x-auto">
         {/* Left: Brand & Socials */}
         <div className="flex items-center gap-3 shrink-0">
           <span className="font-['Geist_Mono'] text-[10px] font-bold tracking-widest text-white uppercase whitespace-nowrap">

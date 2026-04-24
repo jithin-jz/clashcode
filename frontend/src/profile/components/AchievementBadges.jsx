@@ -98,7 +98,7 @@ const AchievementBadges = ({ username }) => {
 
   if (achievements.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 mb-4">
+      <div className="flex flex-col items-center gap-3 mb-2">
         <div className="flex items-center justify-center gap-2 text-neutral-500 uppercase tracking-[0.2em] font-black text-[9px] mb-1">
           <div className="h-px w-6 bg-white/5" />
           <span>Achievements</span>
@@ -114,7 +114,7 @@ const AchievementBadges = ({ username }) => {
 
   return (
     <>
-      <div className="flex flex-col gap-3 mb-4">
+      <div className="flex flex-col gap-3 mb-2">
         <div className="flex items-center justify-center gap-2 text-neutral-500 uppercase tracking-[0.2em] font-black text-[9px] mb-1">
           <div className="h-px w-6 bg-white/5" />
           <span>Achievements</span>

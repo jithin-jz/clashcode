@@ -12,34 +12,40 @@ const ProfileInfo = ({
   const navigate = useNavigate();
 
   return (
-    <div className="pt-16 sm:pt-20 pb-6 px-6 text-center">
-      <div className="h-2 sm:h-4" />
-      <h2 className="text-xl font-bold text-white mb-1 mt-2 sm:mt-4">
+    <div className="pt-2 pb-6 px-6 text-center">
+      <h2 className="text-2xl font-black text-white mb-0.5 mt-1 tracking-tighter uppercase italic">
         {[profileUser?.first_name, profileUser?.last_name]
           .filter(Boolean)
           .join(" ")
           .trim() || profileUser?.username}
       </h2>
+      <p className="text-[10px] font-mono text-neutral-500 uppercase tracking-[0.2em] mb-2">
+        @{profileUser?.username}
+      </p>
 
       {profileUser?.profile?.bio && (
-        <p className="text-[13px] text-neutral-400 mt-4 mb-6 max-w-[240px] mx-auto leading-relaxed italic">
-          {profileUser.profile.bio}
-        </p>
+        <div className="relative py-2 px-2 mb-1">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent h-[1px] top-0" />
+          <p className="text-xs text-neutral-300 max-w-[280px] mx-auto leading-relaxed font-medium">
+            {profileUser.profile.bio}
+          </p>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent h-[1px] bottom-0" />
+        </div>
       )}
 
-      {!profileUser?.profile?.bio && <div className="mb-4"></div>}
+      {!profileUser?.profile?.bio && <div className="mb-2"></div>}
 
-      <div className="mb-4">
+      <div className="mb-2">
         <AchievementBadges username={profileUser?.username} />
         <button
           onClick={() => navigate("/achievements")}
-          className="text-[10px] font-bold text-primary hover:text-primary/80 uppercase tracking-widest mt-2 transition-colors"
+          className="text-[10px] font-bold text-primary hover:text-primary/80 uppercase tracking-widest mt-1 transition-colors"
         >
           View All Achievements
         </button>
       </div>
 
-      <div className="flex items-center justify-center gap-8 mb-6 border-t border-white/5 pt-4">
+      <div className="flex items-center justify-center gap-8 mb-4 border-t border-white/5 pt-3">
         <button
           onClick={() => fetchUserList("followers")}
           className="text-center group"

@@ -224,11 +224,8 @@ class AuthService:
 
             # Update avatar if missing
             if not profile.avatar and user_info.get("avatar_url"):
-                transaction.on_commit(
-                    lambda: fetch_oauth_avatar_task.delay(
-                        profile.id, user_info["avatar_url"]
-                    )
-                )
+                # Download synchronously as worker might not be running in dev
+                AuthService._download_and_save_avatar(profile, user_info["avatar_url"])
 
         else:
             # Create fresh profile
@@ -238,31 +235,30 @@ class AuthService:
                 provider_id=user_info["id"],
                 access_token=tokens["access"],
                 refresh_token=tokens["refresh"],
-                github_username=user_info["username"] if provider == "github" else None,
             )
 
             if user_info.get("avatar_url"):
-                transaction.on_commit(
-                    lambda: fetch_oauth_avatar_task.delay(
-                        profile.id, user_info["avatar_url"]
-                    )
-                )
+                AuthService._download_and_save_avatar(profile, user_info["avatar_url"])
 
     @staticmethod
     def _download_and_save_avatar(profile, url):
         """Helper to download image from URL and save to ImageField."""
         try:
-            response = requests.get(url, timeout=10)
+            # GitHub and others require a User-Agent header
+            headers = {"User-Agent": "CLASHCODE-Backend/1.0"}
+            response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
+                # Extract filename from URL or generate one
                 file_name = url.split("/")[-1].split("?")[0]
-                if not file_name:
+                if not file_name or len(file_name) < 4:
                     file_name = f"avatar_{profile.user.id}.png"
 
-                # Ensure extension
+                # Ensure valid extension
                 if "." not in file_name:
                     file_name += ".png"
 
                 profile.avatar.save(file_name, ContentFile(response.content), save=True)
+                logger.info(f"Successfully downloaded avatar for user {profile.user.username}")
         except Exception as e:
             logger.error(f"Failed to download avatar from {url}: {e}")
 

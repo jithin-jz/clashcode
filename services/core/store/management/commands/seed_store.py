@@ -15,7 +15,7 @@ class Command(BaseCommand):
             # --- THEMES (8 total) ---
             {
                 "name": "Dracula",
-                "description": "Dark purple theme inspired by the classic Dracula color scheme.",
+                "description": "Classic dark theme with purple accents.",
                 "cost": 100,
                 "icon_name": "Palette",
                 "category": "THEME",
@@ -26,7 +26,7 @@ class Command(BaseCommand):
             },
             {
                 "name": "Nord",
-                "description": "Arctic, north-bluish clean theme with frost accents.",
+                "description": "Arctic-inspired clean and frosty theme.",
                 "cost": 100,
                 "icon_name": "Palette",
                 "category": "THEME",
@@ -37,7 +37,7 @@ class Command(BaseCommand):
             },
             {
                 "name": "Monokai",
-                "description": "Vibrant theme with warm colors, popular in many editors.",
+                "description": "Vibrant and warm colors for high focus.",
                 "cost": 150,
                 "icon_name": "Palette",
                 "category": "THEME",
@@ -48,7 +48,7 @@ class Command(BaseCommand):
             },
             {
                 "name": "Solarized Dark",
-                "description": "Precision colors for machines and people.",
+                "description": "High-precision professional dark mode.",
                 "cost": 150,
                 "icon_name": "Palette",
                 "category": "THEME",
@@ -59,7 +59,7 @@ class Command(BaseCommand):
             },
             {
                 "name": "Cyberpunk",
-                "description": "Neon pink and cyan for that futuristic vibe.",
+                "description": "Futuristic neon pink and cyan aesthetics.",
                 "cost": 200,
                 "icon_name": "Palette",
                 "category": "THEME",
@@ -71,7 +71,7 @@ class Command(BaseCommand):
             # New themes
             {
                 "name": "Tokyo Night",
-                "description": "A clean dark theme inspired by Tokyo city lights.",
+                "description": "Clean theme inspired by Tokyo city lights.",
                 "cost": 200,
                 "icon_name": "Palette",
                 "category": "THEME",
@@ -82,7 +82,7 @@ class Command(BaseCommand):
             },
             {
                 "name": "One Dark Pro",
-                "description": "Atom's signature dark theme, refined for clarity.",
+                "description": "Atom's signature dark and refined theme.",
                 "cost": 150,
                 "icon_name": "Palette",
                 "category": "THEME",
@@ -93,7 +93,7 @@ class Command(BaseCommand):
             },
             {
                 "name": "Gruvbox Dark",
-                "description": "Retro groove color scheme with warm tones.",
+                "description": "Retro groove scheme with warm earthy tones.",
                 "cost": 175,
                 "icon_name": "Palette",
                 "category": "THEME",

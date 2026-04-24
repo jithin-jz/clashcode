@@ -43,9 +43,6 @@ export const useProfile = (username) => {
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [referralCodeInput, setReferralCodeInput] = useState("");
-  const [isRedeeming, setIsRedeeming] = useState(false);
   const [contributionData, setContributionData] = useState([]);
   const [loadingContributions, setLoadingContributions] = useState(false);
   const [listType, setListType] = useState(null);
@@ -243,32 +240,6 @@ export const useProfile = (username) => {
     }
   };
 
-  const handleCopyReferral = () => {
-    if (currentUser?.profile?.referral_code) {
-      navigator.clipboard.writeText(currentUser.profile.referral_code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleRedeemReferral = async (e) => {
-    if (e) e.preventDefault();
-    if (!referralCodeInput.trim()) return;
-
-    setIsRedeeming(true);
-    try {
-      const result = await redeemReferral(referralCodeInput);
-      const redeemerXp = result.redeemer_xp_awarded ?? result.xp_awarded;
-      const referrerXp = result.referrer_xp_awarded ?? 100;
-      notify.success(`Referral redeemed! You got +${redeemerXp} and your referrer got +${referrerXp}.`);
-      setReferralCodeInput("");
-    } catch (error) {
-      notify.error("Failed to redeem: " + error.message);
-    } finally {
-      setIsRedeeming(false);
-    }
-  };
-
   const handleLogout = async () => {
     await logout();
     navigate("/login");
@@ -301,10 +272,6 @@ export const useProfile = (username) => {
     savingProfile,
     deleteDialogOpen,
     setDeleteDialogOpen,
-    copied,
-    referralCodeInput,
-    setReferralCodeInput,
-    isRedeeming,
     contributionData,
     loadingContributions,
     listType,
@@ -315,8 +282,6 @@ export const useProfile = (username) => {
     handleSaveProfile,
     handleFollowToggle,
     handleListFollowToggle,
-    handleCopyReferral,
-    handleRedeemReferral,
     handleLogout,
     confirmDeleteAccount,
     fetchUserList,
