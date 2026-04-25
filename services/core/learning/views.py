@@ -199,6 +199,15 @@ class ChallengeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        from .tasks import submit_code_task
+        task = submit_code_task.delay(request.user.id, challenge.id, user_code)
+        
+        return Response({
+            "status": "pending",
+            "task_id": task.id
+        }, status=status.HTTP_202_ACCEPTED)
+
+
         full_code = f"{user_code}\n\n{challenge.test_code}"
         execution_result = PistonExecutionService.execute_code("python", full_code)
         run_data = execution_result.get("run", {})
@@ -238,6 +247,15 @@ class ChallengeViewSet(viewsets.ModelViewSet):
     def execute(self, request, slug=None):
         challenge = self.get_object()
         user_code = request.data.get("code", "")
+        
+        from .tasks import execute_code_task
+        task = execute_code_task.delay(request.user.id, challenge.id, user_code)
+        
+        return Response({
+            "status": "pending",
+            "task_id": task.id
+        }, status=status.HTTP_202_ACCEPTED)
+
 
         full_code = f"{user_code}\n\n{challenge.test_code}"
         execution_result = PistonExecutionService.execute_code("python", full_code)
@@ -454,9 +472,9 @@ class ChallengeViewSet(viewsets.ModelViewSet):
     @decorators.action(
         detail=False,
         methods=["get"],
-        url_path=r"ai-tasks/(?P<task_id>[^/.]+)/status",
+        url_path=r"tasks/(?P<task_id>[^/.]+)/status",
     )
-    def ai_task_status(self, request, task_id=None):
+    def task_status(self, request, task_id=None):
         task_meta = cache.get(_task_meta_cache_key(task_id)) or {}
         if task_meta.get("user_id") != request.user.id:
             return Response(

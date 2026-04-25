@@ -29,7 +29,10 @@ export const buildWebSocketUrl = ({
   defaultPath,
   legacyPaths = [],
   label = "WebSocket",
+  token = null,
 }) => {
+  let wsUrlString = "";
+
   if (explicitUrl) {
     const explicit = parseUrl(explicitUrl);
     if (explicit) {
@@ -40,28 +43,38 @@ export const buildWebSocketUrl = ({
         legacyPaths,
       );
       explicit.hash = "";
-      return explicit.toString();
+      wsUrlString = explicit.toString();
     }
-
-    console.warn(`[${label}] Failed to parse explicit websocket URL.`);
   }
 
-  if (apiUrl) {
+  if (!wsUrlString && apiUrl) {
     if (apiUrl.startsWith("/")) {
-      return `${getWindowWsProtocol()}//${window.location.host}${defaultPath}`;
+      wsUrlString = `${getWindowWsProtocol()}//${window.location.host}${defaultPath}`;
+    } else {
+      const parsedApiUrl = parseUrl(apiUrl);
+      if (parsedApiUrl) {
+        parsedApiUrl.protocol = toWebSocketProtocol(parsedApiUrl.protocol);
+        parsedApiUrl.pathname = defaultPath;
+        parsedApiUrl.search = "";
+        parsedApiUrl.hash = "";
+        wsUrlString = parsedApiUrl.toString();
+      }
     }
-
-    const parsedApiUrl = parseUrl(apiUrl);
-    if (parsedApiUrl) {
-      parsedApiUrl.protocol = toWebSocketProtocol(parsedApiUrl.protocol);
-      parsedApiUrl.pathname = defaultPath;
-      parsedApiUrl.search = "";
-      parsedApiUrl.hash = "";
-      return parsedApiUrl.toString();
-    }
-
-    console.warn(`[${label}] Failed to parse VITE_API_URL.`);
   }
 
-  return `${getWindowWsProtocol()}//${window.location.host}${defaultPath}`;
+  if (!wsUrlString) {
+    wsUrlString = `${getWindowWsProtocol()}//${window.location.host}${defaultPath}`;
+  }
+
+  if (token) {
+    try {
+      const url = new URL(wsUrlString);
+      url.searchParams.set("token", token);
+      return url.toString();
+    } catch {
+      return wsUrlString;
+    }
+  }
+
+  return wsUrlString;
 };

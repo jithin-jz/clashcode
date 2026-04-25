@@ -9,7 +9,7 @@ const AI_TASK_POLL_TIMEOUT_MS = 90000;
 /**
  * Waits for an AI task result using WebSockets with a polling fallback.
  */
-const waitForAITaskResult = async (taskId) => {
+const waitForTaskResult = async (taskId) => {
   try {
     // Primary: Try WebSocket
     return await socketService.waitForTask(taskId, AI_TASK_POLL_TIMEOUT_MS);
@@ -19,7 +19,7 @@ const waitForAITaskResult = async (taskId) => {
     
     const startedAt = Date.now();
     while (Date.now() - startedAt < AI_TASK_POLL_TIMEOUT_MS) {
-      const response = await api.get(`/challenges/ai-tasks/${taskId}/status/`);
+      const response = await api.get(`/challenges/tasks/${taskId}/status/`);
       const payload = response.data || {};
 
       if (payload.status === "success") {
@@ -27,7 +27,7 @@ const waitForAITaskResult = async (taskId) => {
       }
 
       if (payload.status === "failed") {
-        const pollErr = new Error(payload.error || "AI task failed (Poll)");
+        const pollErr = new Error(payload.error || "Task failed (Poll)");
         pollErr.response = { status: 503, data: payload };
         throw pollErr;
       }
@@ -35,7 +35,7 @@ const waitForAITaskResult = async (taskId) => {
       await new Promise((resolve) => setTimeout(resolve, AI_TASK_POLL_INTERVAL_MS));
     }
 
-    const timeoutErr = new Error("AI task timed out (Poll Fallback)");
+    const timeoutErr = new Error("Task timed out (Poll Fallback)");
     timeoutErr.response = { status: 504 };
     throw timeoutErr;
   }
@@ -53,10 +53,16 @@ export const challengesApi = {
   submit: async (slug, code) => {
     const payload = { code };
     const response = await api.post(`/challenges/${slug}/submit/`, payload);
+    if (response.status === 202 && response.data?.task_id) {
+      return waitForTaskResult(response.data.task_id);
+    }
     return response.data;
   },
   execute: async (slug, code) => {
     const response = await api.post(`/challenges/${slug}/execute/`, { code });
+    if (response.status === 202 && response.data?.task_id) {
+      return waitForTaskResult(response.data.task_id);
+    }
     return response.data;
   },
   purchaseAIHint: async (slug) => {
@@ -66,7 +72,7 @@ export const challengesApi = {
   getAIHint: async (slug, data) => {
     const response = await api.post(`/challenges/${slug}/ai-hint/`, data);
     if (response.status === 202 && response.data?.task_id) {
-      return waitForAITaskResult(response.data.task_id);
+      return waitForTaskResult(response.data.task_id);
     }
     return response.data;
   },
@@ -88,7 +94,7 @@ export const challengesApi = {
     try {
       const response = await api.post(path, payload);
       if (response.status === 202 && response.data?.task_id) {
-        return waitForAITaskResult(response.data.task_id);
+        return waitForTaskResult(response.data.task_id);
       }
       return response.data;
     } catch (err) {

@@ -15,9 +15,12 @@ from django.db.models import Count, Q
 
 from challenges.models import UserProgress
 from users.models import UserProfile
+from challenges.execution import PistonExecutionService
+from challenges.services import ChallengeService
 from project.circuit_breaker import RedisCircuitBreaker
 
 ai_cb = RedisCircuitBreaker("ai_service", failure_threshold=3, recovery_timeout=60)
+executor_cb = RedisCircuitBreaker("executor_service", failure_threshold=5, recovery_timeout=30)
 
 logger = logging.getLogger(__name__)
 LEADERBOARD_CACHE_KEY = "leaderboard_data"
@@ -261,3 +264,109 @@ def prewarm_ai_rag_task():
     except Exception as e:
         logger.error(f"AI RAG pre-warming request failed: {e}")
         return {"status": "error", "message": str(e)}
+
+
+@shared_task(bind=True)
+def execute_code_task(self, user_id, challenge_id, user_code):
+    """
+    Execute user code against challenge test cases asynchronously.
+    """
+    from challenges.models import Challenge
+    try:
+        challenge = Challenge.objects.get(id=challenge_id)
+    except Challenge.DoesNotExist:
+        return {"ok": False, "error": "Challenge not found"}
+
+    if not executor_cb.is_available():
+        result = {
+            "ok": False,
+            "error": "Execution service unavailable (Circuit Open)",
+            "status_code": 503
+        }
+        _publish_task_result(user_id, self.request.id, "execute", result)
+        return result
+
+    try:
+        full_code = f"{user_code}\n\n{challenge.test_code}"
+        execution_result = PistonExecutionService.execute_code("python", full_code)
+        run_data = execution_result.get("run", {})
+        
+        exit_code = run_data.get("code", -1)
+        stderr = run_data.get("stderr", "")
+        
+        payload = {
+            "passed": (exit_code == 0) and not stderr,
+            "stdout": run_data.get("stdout", ""),
+            "stderr": stderr,
+            "exit_code": exit_code,
+            "output": run_data.get("output", "")
+        }
+        
+        result = {"ok": True, "payload": payload}
+        executor_cb.record_success()
+        _publish_task_result(user_id, self.request.id, "execute", result)
+        return result
+    except Exception as e:
+        executor_cb.record_failure()
+        logger.error(f"Code execution task failed: {e}")
+        result = {"ok": False, "error": str(e), "status_code": 500}
+        _publish_task_result(user_id, self.request.id, "execute", result)
+        return result
+
+
+@shared_task(bind=True)
+def submit_code_task(self, user_id, challenge_id, user_code):
+    """
+    Submit user code for validation and progress update.
+    """
+    from challenges.models import Challenge
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    try:
+        challenge = Challenge.objects.get(id=challenge_id)
+        user = User.objects.get(id=user_id)
+    except (Challenge.DoesNotExist, User.DoesNotExist):
+        return {"ok": False, "error": "Challenge or User not found"}
+
+    if not executor_cb.is_available():
+        result = {
+            "ok": False,
+            "error": "Execution service unavailable (Circuit Open)",
+            "status_code": 503
+        }
+        _publish_task_result(user_id, self.request.id, "submit", result)
+        return result
+
+    try:
+        full_code = f"{user_code}\n\n{challenge.test_code}"
+        execution_result = PistonExecutionService.execute_code("python", full_code)
+        run_data = execution_result.get("run", {})
+        
+        exit_code = run_data.get("code", -1)
+        stderr = run_data.get("stderr", "")
+        passed = (exit_code == 0) and not stderr
+        
+        if not passed:
+            result = {
+                "ok": False,
+                "error": "Server-side validation failed.",
+                "stdout": run_data.get("stdout"),
+                "stderr": stderr,
+                "status_code": 400
+            }
+            _publish_task_result(user_id, self.request.id, "submit", result)
+            return result
+
+        # Success! Process submission
+        submission_result = ChallengeService.process_submission(user, challenge, passed)
+        result = {"ok": True, "payload": submission_result}
+        executor_cb.record_success()
+        _publish_task_result(user_id, self.request.id, "submit", result)
+        return result
+    except Exception as e:
+        executor_cb.record_failure()
+        logger.error(f"Code submission task failed: {e}")
+        result = {"ok": False, "error": str(e), "status_code": 500}
+        _publish_task_result(user_id, self.request.id, "submit", result)
+        return result

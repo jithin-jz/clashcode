@@ -1,18 +1,22 @@
+/**
  * Manages WebSocket connections for real-time task updates.
  * Replaces polling logic to reduce server load and latency.
  */
 import { SLog } from "./logger";
 
-const getSocketUrl = () => {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
-  const wsProtocol = apiUrl.startsWith("https") ? "wss" : "ws";
-  const base = apiUrl.replace(/^https?:\/\//, "").replace(/\/api\/v1\/?$/, "");
-  return `${wsProtocol}://${base}/ws/tasks/`;
+import { buildWebSocketUrl } from "../utils/websocketUrl";
+
+const getSocketUrl = (token) => {
+  return buildWebSocketUrl({
+    apiUrl: import.meta.env.VITE_API_URL,
+    defaultPath: "/ws/tasks/",
+    label: "TaskHub",
+    token,
+  });
 };
 
 class SocketService {
   constructor() {
-    this.url = getSocketUrl();
     this.socket = null;
     this.listeners = new Map(); // taskId -> { resolve, reject, timeout }
     this.reconnectAttempts = 0;
@@ -24,6 +28,11 @@ class SocketService {
     if (this.socket || this.isConnected) return;
 
     try {
+      // Get fresh token from store
+      const token = localStorage.getItem("clashcode_access_token");
+      this.url = getSocketUrl(token);
+      console.log("[WS] Attempting connection to:", this.url);
+      
       this.socket = new WebSocket(this.url);
 
       this.socket.onopen = () => {

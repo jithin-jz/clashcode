@@ -98,6 +98,7 @@ const useNotificationStore = create((set, get) => ({
       defaultPath: "/ws/notifications",
       legacyPaths: ["/notifications", "/ws"],
       label: "Notifications",
+      token: localStorage.getItem("clashcode_access_token"),
     });
     const socket = new WebSocket(WS_URL);
 
