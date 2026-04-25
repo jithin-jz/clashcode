@@ -1,14 +1,13 @@
 from rest_framework import serializers
 from .models import Post
 from users.serializers import UserSummarySerializer
-from drf_spectacular.utils import extend_schema_field
 
 
 class PostSerializer(serializers.ModelSerializer):
+    """Serializer for individual posts with user details and social stats."""
     user = UserSummarySerializer(read_only=True)
-    is_liked = serializers.SerializerMethodField()
-    likes_count = serializers.SerializerMethodField()
-    image_url = serializers.ImageField(source="image", read_only=True)
+    likes_count = serializers.IntegerField(read_only=True)
+    is_liked = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Post
@@ -16,26 +15,16 @@ class PostSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "image",
-            "image_url",
             "caption",
-            "created_at",
             "likes_count",
             "is_liked",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ["user", "created_at", "likes_count", "image_url"]
-        extra_kwargs = {"image": {"write_only": True, "required": False}}
+        read_only_fields = ["id", "user", "created_at", "updated_at", "likes_count", "is_liked"]
 
-    @extend_schema_field(bool)
-    def get_is_liked(self, obj):
-        if hasattr(obj, "is_liked"):
-            return bool(obj.is_liked)
-        request = self.context.get("request")
-        if request and request.user.is_authenticated:
-            return obj.likes.filter(id=request.user.id).exists()
-        return False
 
-    @extend_schema_field(int)
-    def get_likes_count(self, obj):
-        if hasattr(obj, "likes_count"):
-            return int(obj.likes_count)
-        return obj.likes.count()
+class PostLikeResponseSerializer(serializers.Serializer):
+    """Serializer for the response after toggling a like on a post."""
+    is_liked = serializers.BooleanField(help_text="True if the post is now liked by the user.")
+    likes_count = serializers.IntegerField(help_text="The updated total number of likes on the post.")

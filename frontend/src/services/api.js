@@ -51,10 +51,10 @@ api.interceptors.response.use(
     }
 
     // Check for blocked user
-    if (
-      error.response?.data?.error === "User account is disabled." ||
-      error.response?.data?.detail === "User account is disabled."
-    ) {
+    const errorData = error.response?.data;
+    const errorMessage = errorData?.error || errorData?.detail;
+
+    if (errorMessage === "User account is disabled.") {
       // If in a popup (OAuth), let the caller handle it (to close popup and notify parent)
       if (window.opener) {
         return Promise.reject(error);
@@ -119,11 +119,19 @@ api.interceptors.response.use(
 
     // Log critical errors to centralized SLog
     if (!error.response || error.response.status >= 500) {
-      SLog.error("API critical failure", error, {
+      const errorDetail = errorData?.error || errorData?.detail || error.message;
+      const requestId = errorData?.request_id;
+
+      SLog.error(`API failure: ${errorDetail}`, error, {
         url: originalRequest?.url,
         status: error.response?.status,
         method: originalRequest?.method,
+        requestId: requestId,
       });
+
+      if (requestId) {
+        notify.error(`A server error occurred. Support ID: ${requestId}`);
+      }
     }
 
     return Promise.reject(error);
@@ -193,8 +201,8 @@ export const authAPI = {
     api.post(`/admin/notifications/history/${requestId}/resend/`),
   getAuditLogs: (params = {}) => api.get("/admin/audit-logs/", { params }),
   exportAuditLogs: (params = {}) =>
-    api.get("/admin/audit-logs/", {
-      params: { ...params, format: "csv" },
+    api.get("/admin/audit-logs/export/", {
+      params,
       responseType: "blob",
     }),
   getUserEngagementAnalytics: () => api.get("/admin/analytics/engagement/"),

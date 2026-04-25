@@ -34,7 +34,7 @@ const EditProfileForm = ({
 
       <Card className="bg-[#141414]/70 border-[#404040]/20 shadow-[0_0_100px_rgba(16,185,129,0.05)] relative group">
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
-        
+
         <CardContent className="p-6 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -97,7 +97,7 @@ const EditProfileForm = ({
             >
               Terminate Account
             </button>
-            
+
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
                 variant="ghost"

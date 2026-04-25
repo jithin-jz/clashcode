@@ -1,18 +1,14 @@
-from urllib.parse import urlencode
 import logging
-from django.db import transaction
 from drf_spectacular.utils import extend_schema, OpenApiTypes, inline_serializer
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import User
-from rest_framework import status, serializers
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from .throttles import AuthRateThrottle, SensitiveOperationThrottle
-
 from users.serializers import UserSerializer
 from .serializers import (
     RefreshTokenSerializer,
@@ -23,7 +19,7 @@ from .serializers import (
     OTPVerifySerializer,
 )
 from .services import AuthService
-from .utils import generate_access_token, decode_token, generate_tokens
+from .utils import generate_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -69,311 +65,122 @@ def _auth_success_response(request, user, result):
     return response
 
 
-# --- OAuth Views ---
-
-
-class GitHubAuthURLView(APIView):
+class OAuthViewSet(viewsets.ViewSet):
     """
-    Step 1 of GitHub OAuth: Get the redirect URL.
+    Unified ViewSet for OAuth operations (GitHub, Google, etc.)
     """
-
     permission_classes = [AllowAny]
-    throttle_classes = []
-    serializer_class = OAuthURLSerializer
-
+    provider = None
+    
     @extend_schema(
         responses={200: OAuthURLSerializer},
-        description="Get the GitHub OAuth authorization URL to initiate the login process.",
+        description="Get the OAuth authorization URL for a specific provider.",
     )
-    def get(self, request):
+    @action(detail=False, methods=['get'])
+    def get_url(self, request, provider=None):
+        # Support both URL kwarg and as_view() initialization kwarg
+        provider = provider or getattr(self, 'provider', None)
+        
         state = request.query_params.get("state")
-        params = {
-            "client_id": settings.GITHUB_CLIENT_ID,
-            "redirect_uri": settings.GITHUB_REDIRECT_URI,
-            "scope": "user:email",  # Request email access
-        }
-        if state:
-            params["state"] = state
-
-        url = f"https://github.com/login/oauth/authorize?{urlencode(params)}"
+        if provider == "github":
+            url = AuthService.get_github_auth_url(state)
+        elif provider == "google":
+            url = AuthService.get_google_auth_url(state)
+        else:
+            return Response({"error": "Invalid provider"}, status=status.HTTP_400_BAD_REQUEST)
+            
         return Response({"url": url}, status=status.HTTP_200_OK)
-
-
-class GitHubCallbackView(APIView):
-    """
-    Step 2 of GitHub OAuth: Handle the callback code.
-    """
-
-    permission_classes = [AllowAny]
-    throttle_classes = [AuthRateThrottle]
-    serializer_class = OAuthCodeSerializer
 
     @extend_schema(
         request=OAuthCodeSerializer,
-        responses={
-            200: inline_serializer(
-                name="AuthResponse",
-                fields={
-                    "user": UserSerializer(),
-                },
-            ),
-            400: OpenApiTypes.OBJECT,
-        },
-        description="Exchange GitHub authorization code for JWT tokens and user profile.",
+        responses={200: inline_serializer(name="OAuthResponse", fields={"user": UserSerializer()})},
+        description="Exchange authorization code for tokens and user profile.",
     )
-    def post(self, request):
+    @action(detail=False, methods=['post'], throttle_classes=[AuthRateThrottle])
+    def callback(self, request, provider=None):
+        provider = provider or getattr(self, 'provider', None)
+        
         code = request.data.get("code")
         if not code:
-            return Response(
-                {"error": "Authorization code is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"error": "Authorization code is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Delegate to Service Layer
-        user, result = AuthService.handle_oauth_login("github", code)
-
-        if not user:
-            # Login Failed (result contains error dict)
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
-
-        return _auth_success_response(request, user, result)
-
-
-class GoogleAuthURLView(APIView):
-    """Return the Google OAuth authorization URL."""
-
-    permission_classes = [AllowAny]
-    throttle_classes = []
-    serializer_class = OAuthURLSerializer
-
-    @extend_schema(
-        responses={200: OAuthURLSerializer},
-        description="Get the Google OAuth authorization URL to initiate the login process.",
-    )
-    def get(self, request):
-        state = request.query_params.get("state")
-        params = {
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
-            "response_type": "code",
-            "scope": "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
-            "access_type": "offline",
-            "prompt": "select_account",
-        }
-        if state:
-            params["state"] = state
-
-        url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
-        return Response({"url": url}, status=status.HTTP_200_OK)
-
-
-class GoogleCallbackView(APIView):
-    """Handle Google OAuth callback."""
-
-    permission_classes = [AllowAny]
-    throttle_classes = [AuthRateThrottle]
-    serializer_class = OAuthCodeSerializer
-
-    @extend_schema(
-        request=OAuthCodeSerializer,
-        responses={
-            200: inline_serializer(
-                name="GoogleAuthResponse",
-                fields={
-                    "user": UserSerializer(),
-                },
-            ),
-            400: OpenApiTypes.OBJECT,
-        },
-        description="Exchange Google authorization code for JWT tokens and user profile.",
-    )
-    def post(self, request):
-        code = request.data.get("code")
-        if not code:
-            return Response(
-                {"error": "Authorization code is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        user, result = AuthService.handle_oauth_login("google", code)
-
+        user, result = AuthService.handle_oauth_login(provider, code, request=request)
         if not user:
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         return _auth_success_response(request, user, result)
 
 
-# --- General User Views ---
-
-
-class RefreshTokenView(APIView):
-    """Refresh the access token using a refresh token."""
-
-    permission_classes = [AllowAny]
-    serializer_class = RefreshTokenSerializer
+class AuthViewSet(viewsets.ViewSet):
+    """
+    ViewSet for core authentication actions: Login, Refresh, Logout.
+    """
+    
+    def get_permissions(self):
+        if self.action == 'logout':
+            return [IsAuthenticated()]
+        return [AllowAny()]
 
     @extend_schema(
         request=RefreshTokenSerializer,
-        responses={
-            200: inline_serializer(
-                name="RefreshResponse",
-                fields={
-                    "user": UserSerializer(),
-                },
-            ),
-            401: OpenApiTypes.OBJECT,
-            403: OpenApiTypes.OBJECT,
-        },
-        description="Refresh the access token using a valid refresh token (from body or cookie).",
+        responses={200: inline_serializer(name="RefreshResponse", fields={"user": UserSerializer()})},
+        description="Refresh the access token using a valid refresh token.",
     )
-    def post(self, request):
-        token = request.data.get("refresh_token") or request.COOKIES.get(
-            settings.JWT_REFRESH_COOKIE_NAME
-        )
-        if not token:
-            return Response(
-                {"error": "Refresh token is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        payload = decode_token(token)
+    @action(detail=False, methods=['post'])
+    def refresh(self, request):
+        token = request.data.get("refresh_token") or request.COOKIES.get(settings.JWT_REFRESH_COOKIE_NAME)
+        user, result = AuthService.refresh_access_token(token)
+        
+        if not user:
+            status_code = status.HTTP_401_UNAUTHORIZED
+            if "disabled" in result: status_code = status.HTTP_403_FORBIDDEN
+            elif "required" in result: status_code = status.HTTP_400_BAD_REQUEST
+            return Response({"error": result}, status=status_code)
 
-        if not payload:
-            return Response(
-                {"error": "Invalid or expired refresh token"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        if payload.get("type") != "refresh":
-            return Response(
-                {"error": "Invalid token type"}, status=status.HTTP_401_UNAUTHORIZED
-            )
-
-        try:
-            user = User.objects.get(id=payload["user_id"])
-        except User.DoesNotExist:
-            return Response(
-                {"error": "Invalid or expired refresh token"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        if not user.is_active:
-            return Response(
-                {"error": "User account is disabled."}, status=status.HTTP_403_FORBIDDEN
-            )
-
-        new_access_token = generate_access_token(user)
-
-        payload = {"user": UserSerializer(user, context={"request": request}).data}
-        if getattr(settings, "JWT_RETURN_TOKENS_IN_BODY", False):
-            payload["access_token"] = new_access_token
-
-        response = Response(payload, status=status.HTTP_200_OK)
-        _set_auth_cookies(response, access_token=new_access_token)
-        return response
-
-
-class LogoutView(APIView):
-    """Logout the user (client should delete tokens)."""
-
-    permission_classes = [IsAuthenticated]
+        new_tokens = AuthService.rotate_refresh_token(user, result, request=request)
+        return _auth_success_response(request, user, new_tokens)
 
     @extend_schema(
         request=None,
         responses={200: OpenApiTypes.OBJECT},
-        description="Logout the user and clear authentication cookies.",
+        description="Logout the user and clear cookies.",
     )
-    def post(self, request):
-        response = Response(
-            {"message": "Successfully logged out"}, status=status.HTTP_200_OK
-        )
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+        AuthService.handle_logout(request)
+        response = Response({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
         _clear_auth_cookies(response)
         return response
 
-
-class DeleteAccountView(APIView):
-    """View to delete the user account."""
-
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [SensitiveOperationThrottle]
-
-    @extend_schema(
-        request=None,
-        responses={200: OpenApiTypes.OBJECT},
-        description="Permanently delete the authenticated user account.",
-    )
-    def delete(self, request):
-        user_id = request.user.id
-        try:
-            with transaction.atomic():
-                # Explicitly fetch fresh user instance and lock the row
-                user = User.objects.select_for_update().get(id=user_id)
-                user.delete()
-
-            response = Response(
-                {"message": "Account deleted successfully"}, status=status.HTTP_200_OK
-            )
-            _clear_auth_cookies(response)
-            return response
-
-        except Exception as e:
-            # Table missing error? Run 'python manage.py migrate' in production.
-            logger.exception(f"DeleteAccount failed for user_id={user_id}")
-            return Response(
-                {
-                    "error": "Failed to delete account. Please try again or contact support."
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-
-# --- Admin Views ---
-
-
-class AdminLoginView(APIView):
-    """Admin login view."""
-
-    permission_classes = [AllowAny]
-    throttle_classes = [AuthRateThrottle]
-    serializer_class = AdminLoginSerializer
-
     @extend_schema(
         request=AdminLoginSerializer,
-        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT},
-        description="Authenticate an administrator using username and password.",
+        responses={200: OpenApiTypes.OBJECT},
+        description="Authenticate an administrator.",
     )
-    def post(self, request):
-        serializer = AdminLoginSerializer(
-            data=request.data, context={"request": request}
-        )
-
+    @action(detail=False, methods=['post'], url_path='admin/login', throttle_classes=[AuthRateThrottle])
+    def admin_login(self, request):
+        serializer = AdminLoginSerializer(data=request.data, context={"request": request})
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         user = serializer.validated_data["user"]
         tokens = generate_tokens(user)
-
         return _auth_success_response(request, user, tokens)
 
 
-# --- OTP Views ---
-
-
-class OTPRequestView(APIView):
+class OTPViewSet(viewsets.ViewSet):
     """
-    Step 1 of Email OTP Login: Request a One-Time Password.
+    ViewSet for Email OTP authentication.
     """
-
     permission_classes = [AllowAny]
-    throttle_classes = [AnonRateThrottle]
-    throttle_scope = "otp"
-    serializer_class = OTPRequestSerializer
 
     @extend_schema(
         request=OTPRequestSerializer,
-        responses={200: OpenApiTypes.OBJECT, 429: OpenApiTypes.OBJECT},
-        description="Request a One-Time Password (OTP) to be sent to the provided email address.",
+        responses={200: OpenApiTypes.OBJECT},
+        description="Request a One-Time Password (OTP).",
     )
-    def post(self, request):
+    @action(detail=False, methods=['post'], url_path='request', throttle_classes=[AnonRateThrottle])
+    def request_otp(self, request):
         serializer = OTPRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -382,46 +189,47 @@ class OTPRequestView(APIView):
         try:
             AuthService.request_otp(email)
         except ValidationError as exc:
-            message = exc.messages[0] if getattr(exc, "messages", None) else str(exc)
-            status_code = status.HTTP_429_TOO_MANY_REQUESTS
-            if "deliver OTP" in message:
-                status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-            return Response({"error": message}, status=status_code)
+            return Response({"error": str(exc)}, status=status.HTTP_429_TOO_MANY_REQUESTS)
         except Exception:
-            logger.exception("OTP request failed for email=%s", email)
-            return Response(
-                {"error": "OTP service is temporarily unavailable. Please try again."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return Response({"error": "OTP service unavailable"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         return Response({"message": "OTP sent successfully"}, status=status.HTTP_200_OK)
 
-
-class OTPVerifyView(APIView):
-    """
-    Step 2 of Email OTP Login: Verify the One-Time Password.
-    """
-
-    permission_classes = [AllowAny]
-    throttle_classes = [SensitiveOperationThrottle]
-    serializer_class = OTPVerifySerializer
-
     @extend_schema(
         request=OTPVerifySerializer,
-        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT},
-        description="Verify the OTP sent to email and receive JWT tokens.",
+        responses={200: OpenApiTypes.OBJECT},
+        description="Verify OTP and receive tokens.",
     )
-    def post(self, request):
+    @action(detail=False, methods=['post'], url_path='verify', throttle_classes=[SensitiveOperationThrottle])
+    def verify_otp(self, request):
         serializer = OTPVerifySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        email = serializer.validated_data["email"]
-        otp = serializer.validated_data["otp"]
-
-        user, result = AuthService.verify_otp(email, otp)
-
+        user, result = AuthService.verify_otp(serializer.validated_data["email"], serializer.validated_data["otp"], request=request)
         if not user:
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         return _auth_success_response(request, user, result)
+
+
+class AccountViewSet(viewsets.ViewSet):
+    """
+    ViewSet for user account lifecycle management.
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [SensitiveOperationThrottle]
+
+    @extend_schema(
+        request=None,
+        responses={200: OpenApiTypes.OBJECT},
+        description="Permanently delete the authenticated user account.",
+    )
+    def destroy(self, request, pk=None):
+        success, error = AuthService.delete_user_account(request.user.id, request=request)
+        if not success:
+            return Response({"error": error}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        response = Response({"message": "Account deleted successfully"}, status=status.HTTP_200_OK)
+        _clear_auth_cookies(response)
+        return response

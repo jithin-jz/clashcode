@@ -16,3 +16,29 @@ class EmailOTP(models.Model):
 
     def __str__(self):
         return f"{self.email} - OTP"
+
+
+class SecurityAuditLog(models.Model):
+    """
+    Audit log for security-sensitive authentication events.
+    Essential for production security monitoring and incident response.
+    """
+
+    user = models.ForeignKey(
+        "auth.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="security_logs"
+    )
+    email = models.EmailField(blank=True, db_index=True)
+    action = models.CharField(max_length=100, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True, db_index=True)
+    user_agent = models.CharField(max_length=512, blank=True)
+    details = models.JSONField(default=dict, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-timestamp"]
+        indexes = [
+            models.Index(fields=["user", "action"]),
+        ]
+
+    def __str__(self):
+        return f"{self.action} - {self.email or self.user.username} - {self.timestamp}"

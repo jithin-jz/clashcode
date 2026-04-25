@@ -12,6 +12,7 @@ import {
 import Editor from "@monaco-editor/react";
 import { challengesApi } from "../services/challengesApi";
 import { notify } from "../services/notification";
+import { getErrorMessage } from "../utils/errorUtils";
 import { AdminTableLoadingRow } from "./AdminSkeletons";
 
 const AdminTasks = () => {
@@ -45,7 +46,7 @@ const AdminTasks = () => {
       setTasks(data.sort((a, b) => a.order - b.order));
     } catch (error) {
       console.error("Failed to fetch tasks:", error);
-      notify.error("Failed to load challenges");
+      notify.error(getErrorMessage(error, "Failed to load challenges"));
     } finally {
       setIsLoading(false);
     }
@@ -62,8 +63,8 @@ const AdminTasks = () => {
             await challengesApi.delete(slug);
             notify.success("Challenge deleted");
             fetchTasks();
-          } catch {
-            notify.error("Failed to delete challenge");
+          } catch (error) {
+            notify.error(getErrorMessage(error, "Failed to delete challenge"));
           }
         },
       },
@@ -102,7 +103,7 @@ const AdminTasks = () => {
         onSave();
       } catch (error) {
         console.error("Failed to save challenge:", error);
-        notify.error("Failed to save challenge");
+        notify.error(getErrorMessage(error, "Failed to save challenge"));
       }
     };
 

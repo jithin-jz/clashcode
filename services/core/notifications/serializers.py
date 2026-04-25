@@ -1,30 +1,54 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 from .models import Notification, FCMToken
-
 from users.serializers import UserSummarySerializer
 
-
 class FCMTokenSerializer(serializers.ModelSerializer):
+    """Serializer for registering and updating FCM tokens."""
     class Meta:
         model = FCMToken
-        fields = ["token", "device_id"]
+        fields = ["token", "device_id", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at"]
 
 
 class NotificationSerializer(serializers.ModelSerializer):
+    """Serializer for individual notification records."""
     actor = UserSummarySerializer(read_only=True)
     target_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = Notification
         fields = ["id", "actor", "verb", "target_preview", "is_read", "created_at"]
+        read_only_fields = ["id", "actor", "verb", "target_preview", "is_read", "created_at"]
 
     @extend_schema_field(OpenApiTypes.URI)
     def get_target_preview(self, obj):
-        # Provide a hint about what was acted on
-        if obj.target and hasattr(obj.target, "image") and obj.target.image:
+        """Returns a preview image URL for the target object if available."""
+        if not obj.target:
+            return None
+            
+        # Check common image fields in target models
+        url = None
+        if hasattr(obj.target, "image") and obj.target.image:
+            url = obj.target.image.url
+        elif hasattr(obj.target, "avatar") and obj.target.avatar:
+            url = obj.target.avatar.url
+        elif hasattr(obj.target, "thumbnail") and obj.target.thumbnail:
+            url = obj.target.thumbnail.url
+            
+        if url:
             request = self.context.get("request")
             if request:
-                return request.build_absolute_uri(obj.target.image.url)
-            return obj.target.image.url
+                return request.build_absolute_uri(url)
+            return url
         return None
+
+
+class NotificationListResponseSerializer(serializers.Serializer):
+    """Serializer for the paginated notification list response with unread count."""
+    count = serializers.IntegerField(help_text="Total number of notifications.")
+    unread_count = serializers.IntegerField(help_text="Number of unread notifications.")
+    page = serializers.IntegerField(help_text="Current page number.")
+    page_size = serializers.IntegerField(help_text="Number of items per page.")
+    total_pages = serializers.IntegerField(help_text="Total number of pages.")
+    results = NotificationSerializer(many=True, help_text="List of notification objects.")

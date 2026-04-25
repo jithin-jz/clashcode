@@ -126,3 +126,39 @@ class UltimateAnalyticsSerializer(serializers.Serializer):
     top_items = serializers.ListField(child=serializers.DictField())
     community_leaders = serializers.ListField(child=serializers.DictField())
     system_health = serializers.DictField(required=False)
+
+class AdminReportCreateSerializer(serializers.Serializer):
+    target = serializers.CharField()
+    title = serializers.CharField(max_length=200)
+    summary = serializers.CharField(max_length=2000)
+    category = serializers.CharField(required=False, default="GENERAL")
+    priority = serializers.ChoiceField(
+        choices=[choice for choice, _ in AdminReport.Priority.choices],
+        default="MEDIUM"
+    )
+    context = serializers.JSONField(required=False, default=dict)
+
+class NotificationCreateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=200)
+    message = serializers.CharField(max_length=2000)
+    category = serializers.CharField(required=False, default="SYSTEM")
+    persistent = serializers.BooleanField(required=False, default=True)
+
+class AdminReportUpdateSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=[c for c, _ in AdminReport.Status.choices], required=False)
+    priority = serializers.ChoiceField(choices=[c for c, _ in AdminReport.Priority.choices], required=False)
+    summary = serializers.CharField(max_length=2000, required=False)
+
+class AdminUserBlockSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=False, allow_blank=True)
+
+class AdminUserRoleUpdateSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=["user", "staff", "superuser"])
+
+class AdminUserBulkActionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["block", "unblock"])
+    usernames = serializers.ListField(child=serializers.CharField())
+
+class AdminUserNoteCreateSerializer(serializers.Serializer):
+    body = serializers.CharField(max_length=2000)
+    is_pinned = serializers.BooleanField(required=False, default=False)

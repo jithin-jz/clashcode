@@ -1,7 +1,11 @@
+import logging
 from rest_framework import authentication, exceptions
 from django.conf import settings
 from django.contrib.auth.models import User
 from .utils import decode_token
+from .services import AuthService
+
+logger = logging.getLogger(__name__)
 
 
 class JWTAuthentication(authentication.BaseAuthentication):
@@ -41,6 +45,11 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
         # 3. Decode and validate the token signature and expiration
         payload = decode_token(token)
+
+        # Check blacklist
+        if payload and AuthService.is_token_blacklisted(payload.get("jti")):
+            logger.warning(f"Attempted use of blacklisted token: {payload.get('jti')}")
+            payload = None
 
         # For invalid/expired cookie tokens, treat as anonymous so AllowAny endpoints
         # (like OTP request) are not blocked by stale browser cookies.

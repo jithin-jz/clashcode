@@ -4,118 +4,64 @@ Achievement auto-unlock signals.
 Listens for challenge completions, streak check-ins, and social actions
 to automatically award achievements when conditions are met.
 """
-
+import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from challenges.models import UserProgress
 from rewards.models import DailyCheckIn
 from users.models import UserFollow
-from .models import Achievement, UserAchievement
+from .services import AchievementService
 
-
-def _grant(user, slug):
-    """Grant achievement by slug if not already unlocked."""
-    try:
-        achievement = Achievement.objects.get(slug=slug)
-        _, created = UserAchievement.objects.get_or_create(
-            user=user, achievement=achievement
-        )
-        if created and achievement.xp_reward:
-            profile = user.profile
-            profile.xp += achievement.xp_reward
-            profile.save(update_fields=["xp"])
-        return created
-    except Achievement.DoesNotExist:
-        return False
-
+logger = logging.getLogger(__name__)
 
 # ──── Challenge-based achievements ────
 
-
 @receiver(post_save, sender=UserProgress)
 def check_challenge_achievements(sender, instance, **kwargs):
-    _ = sender, kwargs
     if instance.status != "COMPLETED":
         return
 
     user = instance.user
+    
+    # Calculate current progress
+    completed_count = UserProgress.objects.filter(
+        user=user, status="COMPLETED"
+    ).count()
 
-    try:
-        # First Blood — complete any challenge
-        completed_count = UserProgress.objects.filter(
-            user=user, status="COMPLETED"
-        ).count()
+    # Update progress for tier achievements
+    AchievementService.update_progress(user, "first-blood", completed_count)
+    AchievementService.update_progress(user, "rising-coder", completed_count)
+    AchievementService.update_progress(user, "challenge-veteran", completed_count)
+    AchievementService.update_progress(user, "legend", completed_count)
 
-        if completed_count >= 1:
-            _grant(user, "first-blood")
+    # One-off conditions
+    if instance.started_at and instance.completed_at:
+        elapsed = (instance.completed_at - instance.started_at).total_seconds()
+        if elapsed < 120:
+            AchievementService.update_progress(user, "speed-demon", 1)
 
-        if completed_count >= 5:
-            _grant(user, "rising-coder")
-
-        if completed_count >= 10:
-            _grant(user, "challenge-veteran")
-
-        if completed_count >= 25:
-            _grant(user, "legend")
-
-        # Speed Demon — completed in under 2 minutes
-        if instance.started_at and instance.completed_at:
-            elapsed = (instance.completed_at - instance.started_at).total_seconds()
-            if elapsed < 120:
-                _grant(user, "speed-demon")
-
-        # Perfect Score — 3 stars
-        if instance.stars == 3:
-            _grant(user, "perfectionist")
-    except Exception as e:
-        import logging
-
-        logging.getLogger("achievements").warning(
-            f"Error checking challenge achievements: {e}"
-        )
+    if instance.stars == 3:
+        # For perfectionist, maybe we track total 3-star completions? 
+        # Assuming target_value=1 for now as per previous logic
+        AchievementService.update_progress(user, "perfectionist", 1)
 
 
 # ──── Streak-based achievements ────
 
-
 @receiver(post_save, sender=DailyCheckIn)
 def check_streak_achievements(sender, instance, **kwargs):
-    _ = sender, kwargs
     user = instance.user
-
-    try:
-        if instance.streak_day >= 3:
-            _grant(user, "streak-starter")
-
-        if instance.streak_day >= 7:
-            _grant(user, "streak-master")
-    except Exception as e:
-        import logging
-
-        logging.getLogger("achievements").warning(
-            f"Error checking streak achievements: {e}"
-        )
+    AchievementService.update_progress(user, "streak-starter", instance.streak_day)
+    AchievementService.update_progress(user, "streak-master", instance.streak_day)
 
 
 # ──── Social achievements ────
 
-
 @receiver(post_save, sender=UserFollow)
 def check_social_achievements(sender, instance, **kwargs):
-    _ = sender, kwargs
     follower = instance.follower
-
-    try:
-        following_count = UserFollow.objects.filter(follower=follower).count()
-        if following_count >= 1:
-            _grant(follower, "socializer")
-
-        if following_count >= 10:
-            _grant(follower, "networker")
-    except Exception as e:
-        import logging
-
-        logging.getLogger("achievements").warning(
-            f"Error checking social achievements: {e}"
-        )
+    following_count = UserFollow.objects.filter(follower=follower).count()
+    
+    AchievementService.update_progress(follower, "socializer", following_count)
+    AchievementService.update_progress(follower, "networker", following_count)

@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
 import { authAPI } from "../services/api";
 import { notify } from "../services/notification";
+import { getErrorMessage } from "../utils/errorUtils";
 
 const AdminUserDetailsDrawer = ({
   username,
@@ -32,9 +33,7 @@ const AdminUserDetailsDrawer = ({
       const response = await authAPI.getUserDetails(username);
       setDetails(response.data);
     } catch (error) {
-      notify.error(
-        error.response?.data?.error || "Failed to load user details",
-      );
+      notify.error(getErrorMessage(error, "Failed to load user details"));
     } finally {
       setLoading(false);
     }
@@ -58,7 +57,7 @@ const AdminUserDetailsDrawer = ({
       await fetchDetails();
       onRefreshUsers?.();
     } catch (error) {
-      notify.error(error.response?.data?.error || "Failed to update role");
+      notify.error(getErrorMessage(error, "Failed to update role"));
     } finally {
       setSavingRole(false);
     }
@@ -73,7 +72,7 @@ const AdminUserDetailsDrawer = ({
       notify.success("Admin note added");
       await fetchDetails();
     } catch (error) {
-      notify.error(error.response?.data?.error || "Failed to add note");
+      notify.error(getErrorMessage(error, "Failed to add note"));
     } finally {
       setSavingNote(false);
     }
@@ -93,7 +92,7 @@ const AdminUserDetailsDrawer = ({
       notify.success("Report added to queue");
       await fetchDetails();
     } catch (error) {
-      notify.error(error.response?.data?.error || "Failed to create report");
+      notify.error(getErrorMessage(error, "Failed to create report"));
     } finally {
       setSavingReport(false);
     }

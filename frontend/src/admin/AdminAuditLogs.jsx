@@ -13,6 +13,7 @@ import { Input } from "../components/ui/input";
 import { RefreshCw, User as UserIcon } from "lucide-react";
 import { authAPI } from "../services/api";
 import { notify } from "../services/notification";
+import { getErrorMessage } from "../utils/errorUtils";
 import { formatDistanceToNow } from "date-fns";
 import { AdminTableLoadingRow } from "./AdminSkeletons";
 
@@ -92,8 +93,8 @@ const AdminAuditLogs = () => {
           total_pages: payload?.total_pages ?? 1,
         });
       }
-    } catch {
-      notify.error("Failed to fetch audit logs");
+    } catch (error) {
+      notify.error(getErrorMessage(error, "Failed to fetch audit logs"));
     } finally {
       if (requestId === requestRef.current) {
         setLoading(false);
@@ -139,8 +140,8 @@ const AdminAuditLogs = () => {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-    } catch {
-      notify.error("Failed to export audit logs");
+    } catch (error) {
+      notify.error(getErrorMessage(error, "Failed to export audit logs"));
     }
   };
 

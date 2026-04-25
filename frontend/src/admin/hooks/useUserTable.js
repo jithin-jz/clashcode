@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { authAPI } from "../../services/api";
 import { notify } from "../../services/notification";
+import { getErrorMessage } from "../../utils/errorUtils";
 
 export const useUserTable = (userList, fetchUsers, userFilters, onUsersQueryChange) => {
   const [searchValue, setSearchValue] = useState(userFilters?.search || "");
@@ -75,7 +76,7 @@ export const useUserTable = (userList, fetchUsers, userFilters, onUsersQueryChan
       setSelectedUsers([]);
       fetchUsers(userFilters);
     } catch (error) {
-      notify.error(error.response?.data?.error || "Bulk action failed");
+      notify.error(getErrorMessage(error, "Bulk action failed"));
     }
   };
 
@@ -91,8 +92,8 @@ export const useUserTable = (userList, fetchUsers, userFilters, onUsersQueryChan
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-    } catch {
-      notify.error("Failed to export users");
+    } catch (error) {
+      notify.error(getErrorMessage(error, "Failed to export users"));
     }
   };
 

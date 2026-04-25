@@ -1,26 +1,18 @@
 from django.urls import path
 from .views import (
     AdminStatsView,
-    UserListView,
-    UserBlockToggleView,
-    UserDeleteView,
-    UserDetailsView,
-    UserRoleUpdateView,
-    UserBulkActionView,
-    UserExportView,
-    UserNotesView,
+    AdminUserViewSet,
+    AdminReportViewSet,
+    AdminAuditViewSet,
     ChallengeAnalyticsView,
     StoreAnalyticsView,
     GlobalNotificationView,
     BroadcastHistoryView,
     BroadcastResendView,
-    AdminAuditLogView,
     SystemIntegrityView,
     SystemHealthView,
     UserEngagementAnalyticsView,
     UltimateAnalyticsView,
-    AdminReportsView,
-    AdminReportDetailView,
     StoreItemDuplicateView,
 )
 
@@ -44,7 +36,11 @@ urlpatterns = [
         UltimateAnalyticsView.as_view(),
         name="admin_ultimate_analytics",
     ),
-    path("audit-logs/", AdminAuditLogView.as_view(), name="admin_audit_logs"),
+    
+    # Audit ViewSet
+    path("audit-logs/", AdminAuditViewSet.as_view({"get": "list"}), name="admin_audit_logs"),
+    path("audit-logs/export/", AdminAuditViewSet.as_view({"get": "export"}), name="admin_audit_export"),
+
     path(
         "notifications/history/",
         BroadcastHistoryView.as_view(),
@@ -60,46 +56,52 @@ urlpatterns = [
         GlobalNotificationView.as_view(),
         name="admin_broadcast",
     ),
-    path("users/", UserListView.as_view(), name="admin_user_list"),
-    path("users/export/", UserExportView.as_view(), name="admin_user_export"),
-    path("users/bulk/", UserBulkActionView.as_view(), name="admin_user_bulk"),
+
+    # User ViewSet
+    path("users/", AdminUserViewSet.as_view({"get": "list"}), name="admin_user_list"),
+    path("users/export/", AdminUserViewSet.as_view({"get": "export"}), name="admin_user_export"),
+    path("users/bulk/", AdminUserViewSet.as_view({"post": "bulk_action"}), name="admin_user_bulk"),
     path(
         "users/<str:username>/details/",
-        UserDetailsView.as_view(),
+        AdminUserViewSet.as_view({"get": "retrieve"}),
         name="admin_user_details",
     ),
     path(
         "users/<str:username>/role/",
-        UserRoleUpdateView.as_view(),
+        AdminUserViewSet.as_view({"patch": "update_role"}),
         name="admin_user_role",
     ),
     path(
         "users/<str:username>/notes/",
-        UserNotesView.as_view(),
+        AdminUserViewSet.as_view({"get": "notes", "post": "notes"}),
         name="admin_user_notes",
     ),
     path(
         "users/<str:username>/toggle-block/",
-        UserBlockToggleView.as_view(),
+        AdminUserViewSet.as_view({"post": "toggle_block"}),
         name="admin_toggle_block_user",
     ),
     path(
         "users/<str:username>/delete/",
-        UserDeleteView.as_view(),
+        AdminUserViewSet.as_view({"delete": "destroy"}),
         name="admin_delete_user",
     ),
+
     path(
         "system/integrity/",
         SystemIntegrityView.as_view(),
         name="admin_system_integrity",
     ),
     path("system/health/", SystemHealthView.as_view(), name="admin_system_health"),
-    path("reports/", AdminReportsView.as_view(), name="admin_reports"),
+    
+    # Report ViewSet
+    path("reports/", AdminReportViewSet.as_view({"get": "list", "post": "create"}), name="admin_reports"),
     path(
         "reports/<int:report_id>/",
-        AdminReportDetailView.as_view(),
+        AdminReportViewSet.as_view({"patch": "partial_update"}),
         name="admin_report_detail",
     ),
+    
     path(
         "store/items/<int:item_id>/duplicate/",
         StoreItemDuplicateView.as_view(),

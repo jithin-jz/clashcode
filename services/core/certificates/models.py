@@ -38,3 +38,21 @@ class UserCertificate(models.Model):
 
         base_url = settings.FRONTEND_URL or "http://localhost:5173"
         return f"{base_url}/verify/{self.certificate_id}"
+
+
+class CertificateVerificationLog(models.Model):
+    """
+    Logs every time a certificate is verified.
+    Useful for analytics and detecting abuse.
+    """
+    certificate = models.ForeignKey(UserCertificate, on_delete=models.CASCADE, related_name="verification_logs")
+    verified_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True)
+    referer = models.URLField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-verified_at"]
+
+    def __str__(self):
+        return f"Verification for {self.certificate.certificate_id} at {self.verified_at}"

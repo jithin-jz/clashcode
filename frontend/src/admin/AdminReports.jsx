@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
 import { authAPI } from "../services/api";
 import { notify } from "../services/notification";
+import { getErrorMessage } from "../utils/errorUtils";
 
 const AdminReports = () => {
   const [reports, setReports] = useState([]);
@@ -26,11 +27,7 @@ const AdminReports = () => {
       const unavailable = error?.response?.status === 404;
       setReportsUnavailable(unavailable);
       if (!options.silent) {
-        notify.error(
-          unavailable
-            ? "Reports will appear after the backend restarts"
-            : "Failed to load reports",
-        );
+        notify.error(getErrorMessage(error, "Failed to load reports"));
       }
     } finally {
       setLoading(false);
@@ -46,8 +43,8 @@ const AdminReports = () => {
       await authAPI.updateReport(reportId, { status });
       notify.success("Report updated");
       fetchReports();
-    } catch {
-      notify.error("Failed to update report");
+    } catch (error) {
+      notify.error(getErrorMessage(error, "Failed to update report"));
     }
   };
 

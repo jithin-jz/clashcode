@@ -24,7 +24,6 @@ class UserProfile(models.Model):
     PROVIDER_CHOICES = [
         ("github", "GitHub"),
         ("google", "Google"),
-        ("discord", "Discord"),
         ("email", "Email OTP"),
         ("local", "Local/Admin"),
     ]

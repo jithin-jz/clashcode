@@ -23,7 +23,7 @@ export default defineConfig({
     tailwindcss(),
     boneyardPlugin({
       routes: ["/login", "/home", "/profile", "/achievements", "/store"],
-      debug: true,
+      debug: false,
     }),
     sentryVitePlugin({
       org: "clashcode",

@@ -1,4 +1,5 @@
 import jwt
+import uuid
 
 import hmac
 from hashlib import sha256
@@ -26,6 +27,7 @@ def generate_access_token(user):
     Contains user identity (id, username, email) but no sensitive data.
     """
     payload = {
+        "jti": uuid.uuid4().hex,
         "user_id": user.id,
         "username": user.username,
         "email": user.email,
@@ -48,6 +50,7 @@ def generate_refresh_token(user):
     Used to obtain new access tokens without re-login.
     """
     payload = {
+        "jti": uuid.uuid4().hex,
         "user_id": user.id,
         "exp": datetime.now(timezone.utc)
         + timedelta(seconds=settings.JWT_REFRESH_TOKEN_LIFETIME),

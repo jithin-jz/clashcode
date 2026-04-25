@@ -1,7 +1,6 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from challenges.models import Challenge, UserProgress
-from challenges.levels import LEVELS
 from certificates.models import UserCertificate
 from challenges.services import ChallengeService
 
@@ -9,7 +8,7 @@ from challenges.services import ChallengeService
 class CertificateFlowTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="testuser", password="password")
-        self.total_levels = len(LEVELS)
+        self.total_levels = 5  # Use a small fixed number for tests
         # Create global challenges
         self.challenges = []
         for i in range(1, self.total_levels + 1):

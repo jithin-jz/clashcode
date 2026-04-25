@@ -231,6 +231,49 @@ CACHES = {
     }
 }
 
+# Logging Configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "admin_file": {
+            "level": "WARNING",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/admin.log"),
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "clashcode.admin": {
+            "handlers": ["console", "admin_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+
+# Ensure logs directory exists
+os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
+
 # Default primary key
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -302,6 +345,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "EXCEPTION_HANDLER": "administration.exception_handler.admin_exception_handler",
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",

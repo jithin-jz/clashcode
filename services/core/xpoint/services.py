@@ -2,6 +2,7 @@ import logging
 from django.db import transaction
 from django.utils import timezone
 
+from .models import XPTransaction
 from users.models import UserProfile
 
 logger = logging.getLogger(__name__)
@@ -11,13 +12,13 @@ class XPService:
     SOURCE_CHECK_IN = "check_in"
     SOURCE_PURCHASE = "purchase"
     SOURCE_REFERRAL = "referral"
-    SOURCE_ADMIN = "admin_adjustment"
+    SOURCE_CHALLENGE = "challenge"
+    SOURCE_ADMIN = "admin"
 
     @staticmethod
     def add_xp(user, amount, source=None, description=None):
-        """Add XP to a user's profile."""
+        """Add XP to a user's profile and record the transaction."""
         if amount == 0:
-            logger.warning(f"Attempted to add zero XP to user {user.username}")
             return user.profile.xp
 
         try:
@@ -31,8 +32,17 @@ class XPService:
                 profile.xp = new_total
                 profile.save()
 
+                # Record transaction
+                XPTransaction.objects.create(
+                    user=user,
+                    amount=amount,
+                    balance_after=new_total,
+                    source=source or XPService.SOURCE_ADMIN,
+                    description=description,
+                )
+
                 logger.info(
-                    f"Added {amount} XP to user {user.username} (Source: {source}). Total: {profile.xp}"
+                    f"XP_TX: {user.username} {amount:+} XP ({source}). New: {profile.xp}"
                 )
 
                 return profile.xp

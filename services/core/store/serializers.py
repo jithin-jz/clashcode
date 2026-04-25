@@ -1,11 +1,9 @@
 from rest_framework import serializers
 from .models import StoreItem, Purchase
-from drf_spectacular.utils import extend_schema_field
 
 
 class StoreItemSerializer(serializers.ModelSerializer):
-    is_owned = serializers.SerializerMethodField()
-
+    """Serializer for store items."""
     class Meta:
         model = StoreItem
         fields = [
@@ -17,14 +15,30 @@ class StoreItemSerializer(serializers.ModelSerializer):
             "category",
             "image",
             "item_data",
-            "is_active",
             "featured",
-            "is_owned",
+            "is_active",
         ]
 
-    @extend_schema_field(bool)
-    def get_is_owned(self, obj):
-        request = self.context.get("request")
-        if request and request.user.is_authenticated:
-            return Purchase.objects.filter(user=request.user, item=obj).exists()
-        return False
+
+class PurchaseResponseSerializer(serializers.Serializer):
+    """Serializer for successful purchase response."""
+    status = serializers.CharField()
+    message = serializers.CharField()
+    remaining_xp = serializers.IntegerField()
+    item = StoreItemSerializer()
+
+
+class InventoryResponseSerializer(serializers.Serializer):
+    """Serializer for user inventory and equipped items."""
+    purchased_items = StoreItemSerializer(many=True)
+    equipped_items = serializers.DictField()
+
+
+class EquipItemRequestSerializer(serializers.Serializer):
+    """Serializer for equipping an item."""
+    item_id = serializers.IntegerField()
+
+
+class UnequipItemRequestSerializer(serializers.Serializer):
+    """Serializer for unequipping a category."""
+    category = serializers.ChoiceField(choices=["THEME", "FONT", "EFFECT", "VICTORY"])

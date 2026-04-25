@@ -1,23 +1,42 @@
-from django.core.paginator import Paginator
-from rest_framework import viewsets, permissions, status, mixins, serializers
+import logging
+from rest_framework import viewsets, permissions, status, mixins, pagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from drf_spectacular.utils import (
-    OpenApiParameter,
-    OpenApiTypes,
-    extend_schema,
-    inline_serializer,
-)
+from drf_spectacular.utils import extend_schema, OpenApiTypes
+
 from authentication.throttles import NotificationRateThrottle
 from .models import Notification, FCMToken
-from .serializers import NotificationSerializer, FCMTokenSerializer
+from .serializers import (
+    NotificationSerializer, 
+    FCMTokenSerializer, 
+    NotificationListResponseSerializer
+)
+from .services import NotificationService
+
+logger = logging.getLogger(__name__)
+
+class NotificationPagination(pagination.PageNumberPagination):
+    """Custom pagination to include unread_count in the response."""
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+    def get_paginated_response(self, data):
+        unread_count = self.request.user.notifications.filter(is_read=False).count()
+        return Response({
+            "count": self.page.paginator.count,
+            "unread_count": unread_count,
+            "page": self.page.number,
+            "page_size": self.get_page_size(self.request),
+            "total_pages": self.page.paginator.num_pages,
+            "results": data,
+        })
 
 
 class FCMTokenViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     """
     ViewSet for managing FCM tokens for push notifications.
     """
-
     serializer_class = FCMTokenSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -30,29 +49,20 @@ class FCMTokenViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         description="Register or update an FCM token for the authenticated user.",
     )
     def create(self, request, *args, **kwargs):
-        token = request.data.get("token")
-        device_id = request.data.get("device_id")
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        fcm_token, created = NotificationService.register_fcm_token(
+            user=request.user,
+            token=serializer.validated_data["token"],
+            device_id=serializer.validated_data.get("device_id")
+        )
 
-        if not token:
-            return Response(
-                {"error": "Token is required"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            # Use token as the primary lookup to avoid IntegrityError if device_id changes
-            fcm_token, created = FCMToken.objects.update_or_create(
-                token=token, defaults={"user": request.user, "device_id": device_id}
-            )
-
-            serializer = self.get_serializer(fcm_token)
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
-            )
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        response_serializer = self.get_serializer(fcm_token)
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 class NotificationViewSet(
@@ -62,71 +72,26 @@ class NotificationViewSet(
     viewsets.GenericViewSet,
 ):
     """
-    ViewSet for managing user notifications.
+    ViewSet for managing user notifications with proper serialization and pagination.
     """
-
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = NotificationPagination
     throttle_classes = [NotificationRateThrottle]
 
     def get_queryset(self):
+        """Optimized queryset with select_related for performance."""
         return Notification.objects.select_related("actor", "actor__profile").filter(
             recipient=self.request.user
-        )
+        ).order_by("-created_at")
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter("page", int, OpenApiParameter.QUERY, default=1),
-            OpenApiParameter("page_size", int, OpenApiParameter.QUERY, default=50),
-        ],
-        responses={
-            200: inline_serializer(
-                name="NotificationListResponse",
-                fields={
-                    "count": serializers.IntegerField(),
-                    "unread_count": serializers.IntegerField(),
-                    "page": serializers.IntegerField(),
-                    "page_size": serializers.IntegerField(),
-                    "total_pages": serializers.IntegerField(),
-                    "results": NotificationSerializer(many=True),
-                },
-            )
-        },
-        description="List notifications for the authenticated user with pagination metadata.",
+        responses={200: NotificationListResponseSerializer},
+        description="List notifications for the authenticated user with pagination and unread count.",
     )
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset().order_by("-created_at")
-        unread_count = queryset.filter(is_read=False).count()
-
-        try:
-            page = max(int(request.query_params.get("page", 1)), 1)
-        except (TypeError, ValueError):
-            page = 1
-        try:
-            page_size = int(request.query_params.get("page_size", 50))
-        except (TypeError, ValueError):
-            page_size = 50
-        page_size = min(max(page_size, 1), 100)
-
-        paginator = Paginator(queryset, page_size)
-        page_obj = paginator.get_page(page)
-        serializer = self.get_serializer(
-            page_obj.object_list,
-            many=True,
-            context={"request": request},
-        )
-
-        return Response(
-            {
-                "count": paginator.count,
-                "unread_count": unread_count,
-                "page": page_obj.number,
-                "page_size": page_size,
-                "total_pages": paginator.num_pages,
-                "results": serializer.data,
-            },
-            status=status.HTTP_200_OK,
-        )
+        # The list logic is now largely handled by the pagination_class
+        return super().list(request, *args, **kwargs)
 
     @extend_schema(
         request=None,
@@ -135,8 +100,8 @@ class NotificationViewSet(
     )
     @action(detail=False, methods=["post"])
     def mark_all_read(self, request):
-        self.get_queryset().filter(is_read=False).update(is_read=True)
-        return Response({"status": "marked all read"}, status=status.HTTP_200_OK)
+        count = NotificationService.mark_all_as_read(request.user)
+        return Response({"status": "success", "marked_read": count}, status=status.HTTP_200_OK)
 
     @extend_schema(
         request=None,
@@ -145,17 +110,17 @@ class NotificationViewSet(
     )
     @action(detail=False, methods=["delete"])
     def clear_all(self, request):
-        self.get_queryset().delete()
+        NotificationService.clear_all(request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         request=None,
-        responses={200: OpenApiTypes.OBJECT},
+        responses={200: OpenApiTypes.OBJECT, 404: OpenApiTypes.OBJECT},
         description="Mark a specific notification as read.",
     )
     @action(detail=True, methods=["post"])
     def mark_read(self, request, pk=None):
-        notification = self.get_object()
-        notification.is_read = True
-        notification.save()
-        return Response({"status": "marked read"}, status=status.HTTP_200_OK)
+        success = NotificationService.mark_as_read(pk, request.user)
+        if not success:
+            return Response({"error": "Notification not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"status": "success", "message": "Notification marked as read."}, status=status.HTTP_200_OK)

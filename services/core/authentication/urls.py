@@ -1,30 +1,22 @@
 from django.urls import path
-from .views import (
-    GitHubAuthURLView,
-    GitHubCallbackView,
-    GoogleAuthURLView,
-    GoogleCallbackView,
-    RefreshTokenView,
-    LogoutView,
-    DeleteAccountView,
-    AdminLoginView,
-    OTPRequestView,
-    OTPVerifyView,
-)
+from .views import OAuthViewSet, AuthViewSet, OTPViewSet, AccountViewSet
 
 urlpatterns = [
     # GitHub OAuth
-    path("github/", GitHubAuthURLView.as_view(), name="github_auth_url"),
-    path("github/callback/", GitHubCallbackView.as_view(), name="github_callback"),
+    path("github/", OAuthViewSet.as_view({'get': 'get_url'}, provider='github'), name="github_auth_url"),
+    path("github/callback/", OAuthViewSet.as_view({'post': 'callback'}, provider='github'), name="github_callback"),
+    
     # Google OAuth
-    path("google/", GoogleAuthURLView.as_view(), name="google_auth_url"),
-    path("google/callback/", GoogleCallbackView.as_view(), name="google_callback"),
+    path("google/", OAuthViewSet.as_view({'get': 'get_url'}, provider='google'), name="google_auth_url"),
+    path("google/callback/", OAuthViewSet.as_view({'post': 'callback'}, provider='google'), name="google_callback"),
+    
     # Auth endpoints
-    path("refresh/", RefreshTokenView.as_view(), name="refresh_token"),
-    path("logout/", LogoutView.as_view(), name="logout"),
-    path("user/delete/", DeleteAccountView.as_view(), name="delete_account"),
-    path("admin/login/", AdminLoginView.as_view(), name="admin_login"),
+    path("refresh/", AuthViewSet.as_view({'post': 'refresh'}), name="refresh_token"),
+    path("logout/", AuthViewSet.as_view({'post': 'logout'}), name="logout"),
+    path("user/delete/", AccountViewSet.as_view({'delete': 'destroy'}), name="delete_account"),
+    path("admin/login/", AuthViewSet.as_view({'post': 'admin_login'}), name="admin_login"),
+    
     # Email OTP endpoints
-    path("otp/request/", OTPRequestView.as_view(), name="otp_request"),
-    path("otp/verify/", OTPVerifyView.as_view(), name="otp_verify"),
+    path("otp/request/", OTPViewSet.as_view({'post': 'request_otp'}), name="otp_request"),
+    path("otp/verify/", OTPViewSet.as_view({'post': 'verify_otp'}), name="otp_verify"),
 ]
