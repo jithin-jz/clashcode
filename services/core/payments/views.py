@@ -1,8 +1,11 @@
+import logging
 from django.conf import settings
 from django.db import transaction
 from rest_framework import views, status, permissions, serializers
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiTypes, inline_serializer
+
+logger = logging.getLogger(__name__)
 
 from xpoint.services import XPService
 from .models import Payment
@@ -108,23 +111,24 @@ class CreateOrderView(views.APIView):
             )
 
         except Exception as e:
+            logger.error(f"Payment order creation failed: {str(e)}", exc_info=True)
             if "Razorpay SDK is not available" in str(e):
                 return Response(
                     {"error": "Payment service is unavailable (Razorpay SDK missing)"},
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
-            if "Razorpay keys are not configured" in str(e):
+            if "Razorpay keys" in str(e):
                 return Response(
                     {"error": "Payment service is unavailable (Razorpay keys missing)"},
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
             if razorpay and isinstance(e, razorpay.errors.BadRequestError):
                 return Response(
-                    {"error": "Payment provider rejected the order request"},
+                    {"error": f"Payment provider rejected the order request: {str(e)}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             return Response(
-                {"error": "Unable to create payment order"},
+                {"error": f"Unable to create payment order: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

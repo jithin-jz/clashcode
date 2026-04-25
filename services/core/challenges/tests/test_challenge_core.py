@@ -6,6 +6,7 @@ from challenges.models import Challenge, UserProgress
 from users.models import UserProfile
 from django.utils import timezone
 from datetime import timedelta
+from unittest.mock import patch
 
 
 class ChallengeCoreTests(APITestCase):
@@ -64,10 +65,12 @@ class ChallengeCoreTests(APITestCase):
         self.assertEqual(items[1]["slug"], "l2")
         self.assertEqual(items[1]["status"], UserProgress.Status.LOCKED)
 
-    def test_unlock_next_level_after_completion(self):
+    @patch("learning.views.PistonExecutionService.execute_code")
+    def test_unlock_next_level_after_completion(self, mock_execute):
+        mock_execute.return_value = {"run": {"code": 0, "stderr": "", "stdout": ""}}
         # Complete Level 1
         url = reverse("challenge-submit", kwargs={"slug": "l1"})
-        response = self.client.post(url, {"passed": True}, format="json")
+        response = self.client.post(url, {"code": "pass"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "completed")
 
@@ -81,42 +84,65 @@ class ChallengeCoreTests(APITestCase):
         self.assertEqual(items[1]["status"], UserProgress.Status.UNLOCKED)
         self.assertEqual(items[2]["status"], UserProgress.Status.LOCKED)
 
-    def test_submit_requires_passed_flag(self):
+    @patch("learning.views.PistonExecutionService.execute_code")
+    def test_submit_requires_code_and_validates_server_side(self, mock_execute):
         url = reverse("challenge-submit", kwargs={"slug": "l1"})
         response = self.client.post(url, {}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         response = self.client.post(url, {"passed": "true"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response = self.client.post(f"{url}?passed=true", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        mock_execute.return_value = {"run": {"code": 0, "stderr": "", "stdout": ""}}
+        response = self.client.post(url, {"code": "pass"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        mock_execute.return_value = {
+            "run": {"code": 1, "stderr": "AssertionError", "stdout": ""}
+        }
+        response = self.client.post(url, {"code": "bad"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_submit_rejects_legacy_passed_flag(self):
+        url = reverse("challenge-submit", kwargs={"slug": "l1"})
+        response = self.client.post(url, {"passed": "true"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         response = self.client.post(url, {"passed": "false"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         response = self.client.post(f"{url}?passed=true", {}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_xp_reward_only_on_first_completion(self):
+    @patch("learning.views.PistonExecutionService.execute_code")
+    def test_xp_reward_only_on_first_completion(self, mock_execute):
+        mock_execute.return_value = {"run": {"code": 0, "stderr": "", "stdout": ""}}
         initial_xp = self.profile.xp
 
         # First completion of L1
         url = reverse("challenge-submit", kwargs={"slug": "l1"})
-        self.client.post(url, {"passed": True}, format="json")
+        self.client.post(url, {"code": "pass"}, format="json")
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.xp, initial_xp + 100)
 
         # Second completion of L1
-        self.client.post(url, {"passed": True}, format="json")
+        self.client.post(url, {"code": "pass"}, format="json")
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.xp, initial_xp + 100)  # Still same XP
 
-    def test_star_rating_penalties(self):
+    @patch("learning.views.PistonExecutionService.execute_code")
+    def test_star_rating_penalties(self, mock_execute):
+        mock_execute.return_value = {"run": {"code": 0, "stderr": "", "stdout": ""}}
         # 1. Test 3 Stars (Clean & Fast)
         url = reverse("challenge-submit", kwargs={"slug": "l1"})
         # We need to set started_at to test time penalty
         # Retrieve triggers setting started_at
         self.client.get(reverse("challenge-detail", kwargs={"slug": "l1"}))
 
-        response = self.client.post(url, {"passed": True}, format="json")
+        response = self.client.post(url, {"code": "pass"}, format="json")
         self.assertEqual(response.data["stars"], 3)
 
         # 2. Test 2 Stars (Slow completion)
@@ -127,10 +153,12 @@ class ChallengeCoreTests(APITestCase):
             started_at=timezone.now() - timedelta(seconds=500),  # > 2*120
         )
         url = reverse("challenge-submit", kwargs={"slug": "l2"})
-        response = self.client.post(url, {"passed": True}, format="json")
+        response = self.client.post(url, {"code": "pass"}, format="json")
         self.assertEqual(response.data["stars"], 2)  # Penalized for time
 
-    def test_ai_hint_purchase_penalty(self):
+    @patch("learning.views.PistonExecutionService.execute_code")
+    def test_ai_hint_purchase_penalty(self, mock_execute):
+        mock_execute.return_value = {"run": {"code": 0, "stderr": "", "stdout": ""}}
         # Give user some XP to purchase hints
         self.profile.xp = 100
         self.profile.save()
@@ -144,7 +172,7 @@ class ChallengeCoreTests(APITestCase):
         # Retrieve to set started_at
         self.client.get(reverse("challenge-detail", kwargs={"slug": "l3"}))
 
-        response = self.client.post(url_submit, {"passed": True}, format="json")
+        response = self.client.post(url_submit, {"code": "pass"}, format="json")
         # 3 stars - 1 hint = 2 stars
         self.assertEqual(response.data["stars"], 2)
 

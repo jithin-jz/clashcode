@@ -4,28 +4,41 @@ services:
     image: nginx:1.27-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "${NGINX_HTTP_PORT:-80}:80"
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      core:
+        condition: service_healthy
+      chat:
+        condition: service_healthy
+      ai:
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - default
+
+
 
   # ---------------- DATABASES ----------------
   db:
     image: postgres:15
     restart: unless-stopped
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_DB=clashcode_db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      POSTGRES_DB: ${POSTGRES_DB:-clashcode_db}
+      POSTGRES_USER: ${POSTGRES_USER:-clashcode}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d clashcode_db" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clashcode} -d ${POSTGRES_DB:-clashcode_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,10 +49,11 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -53,18 +67,14 @@ services:
     command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ."
     volumes:
       - dynamodb_data:/home/dynamodblocal/data
-    ports:
-      - "8008:8000"
     networks:
       - default
 
   chroma:
     image: chromadb/chroma:1.4.1
     restart: unless-stopped
-    ports:
-      - "8010:8000"
     environment:
-      - IS_PERSISTENT=TRUE
+      IS_PERSISTENT: "TRUE"
     volumes:
       - chroma_data:/chroma/data
     networks:
@@ -75,14 +85,37 @@ services:
     build: ./core
     restart: unless-stopped
     env_file: ./core/.env
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-3} --timeout ${GUNICORN_TIMEOUT:-60} project.wsgi:application"
     environment:
-      - DB_HOST=db
-      - REDIS_URL=redis://redis:6379/0
+      DB_HOST: db
+      DB_NAME: ${POSTGRES_DB:-clashcode_db}
+      DB_USER: ${POSTGRES_USER:-clashcode}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      EXECUTOR_URL: http://executor:8011/execute
+      INTERNAL_REQUIRE_SIGNATURE: ${INTERNAL_REQUIRE_SIGNATURE:-true}
+      INTERNAL_SIGNING_SECRET: ${INTERNAL_SIGNING_SECRET:?Set INTERNAL_SIGNING_SECRET}
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+      executor:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/', timeout=3).read()\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - default
 
@@ -91,11 +124,23 @@ services:
     restart: unless-stopped
     env_file: ./chat/.env
     environment:
-      - REDIS_URL=redis://redis:6379/0
-      - DYNAMODB_URL=http://dynamodb:8000
+      REDIS_URL: redis://redis:6379/0
+      DYNAMODB_URL: http://dynamodb:8000
     depends_on:
-      - redis
-      - dynamodb
+      redis:
+        condition: service_healthy
+      dynamodb:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/', timeout=3).read()\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - default
 
@@ -104,14 +149,29 @@ services:
     restart: unless-stopped
     env_file: ./ai/.env
     environment:
-      - CORE_SERVICE_URL=http://core:8000
-      - CHROMA_SERVER_HOST=chroma
-      - CHROMA_SERVER_HTTP_PORT=8000
-      - REDIS_URL=redis://redis:6379/0
+      CORE_SERVICE_URL: http://core:8000
+      CHROMA_SERVER_HOST: chroma
+      CHROMA_SERVER_HTTP_PORT: 8000
+      REDIS_URL: redis://redis:6379/0
+      INTERNAL_REQUIRE_SIGNATURE: ${INTERNAL_REQUIRE_SIGNATURE:-true}
+      INTERNAL_SIGNING_SECRET: ${INTERNAL_SIGNING_SECRET:?Set INTERNAL_SIGNING_SECRET}
     depends_on:
-      - core
-      - chroma
-      - redis
+      core:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health', timeout=3).read()\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - default
 
@@ -122,10 +182,16 @@ services:
     command: celery -A project worker --loglevel=info
     env_file: ./core/.env
     environment:
-      - DB_HOST=db
-      - REDIS_URL=redis://redis:6379/0
+      DB_HOST: db
+      DB_NAME: ${POSTGRES_DB:-clashcode_db}
+      DB_USER: ${POSTGRES_USER:-clashcode}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      INTERNAL_REQUIRE_SIGNATURE: ${INTERNAL_REQUIRE_SIGNATURE:-true}
+      INTERNAL_SIGNING_SECRET: ${INTERNAL_SIGNING_SECRET:?Set INTERNAL_SIGNING_SECRET}
     depends_on:
-      db:
+      core:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -138,25 +204,54 @@ services:
     command: celery -A project beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     env_file: ./core/.env
     environment:
-      - DB_HOST=db
-      - REDIS_URL=redis://redis:6379/0
+      DB_HOST: db
+      DB_NAME: ${POSTGRES_DB:-clashcode_db}
+      DB_USER: ${POSTGRES_USER:-clashcode}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      INTERNAL_REQUIRE_SIGNATURE: ${INTERNAL_REQUIRE_SIGNATURE:-true}
+      INTERNAL_SIGNING_SECRET: ${INTERNAL_SIGNING_SECRET:?Set INTERNAL_SIGNING_SECRET}
     depends_on:
-      db:
+      core:
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
       - default
 
-  # ---------------- CODE EXECUTION ----------------
-  piston:
-    image: ghcr.io/engineer-man/piston:latest
+  # ---------------- PYTHON CODE EXECUTION ----------------
+  executor:
+    build: ./executor
     restart: unless-stopped
-    privileged: true
-    ports:
-      - "2000:2000"
-    volumes:
-      - piston_data:/piston/packages
+    read_only: true
+    user: "10001:10001"
+    runtime: ${CONTAINER_RUNTIME:-runc}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: ${EXECUTOR_CONTAINER_MEMORY:-256m}
+    cpus: ${EXECUTOR_CONTAINER_CPUS:-1.0}
+    environment:
+      EXECUTOR_MAX_CODE_BYTES: ${EXECUTOR_MAX_CODE_BYTES:-65536}
+      EXECUTOR_TIMEOUT_SECONDS: ${EXECUTOR_TIMEOUT_SECONDS:-5}
+      EXECUTOR_MEMORY_LIMIT_MB: ${EXECUTOR_MEMORY_LIMIT_MB:-128}
+      EXECUTOR_OUTPUT_LIMIT_BYTES: ${EXECUTOR_OUTPUT_LIMIT_BYTES:-32768}
+      EXECUTOR_BLOCK_DANGEROUS_IMPORTS: ${EXECUTOR_BLOCK_DANGEROUS_IMPORTS:-true}
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8011/health', timeout=3).read()\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - default
 
@@ -166,6 +261,6 @@ networks:
 
 volumes:
   postgres_data:
+  redis_data:
   chroma_data:
   dynamodb_data:
-  piston_data:

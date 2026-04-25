@@ -32,8 +32,10 @@ def _parse_bool(value: str | None, default: bool) -> bool:
 
 ALLOWED_HOSTS = _parse_csv(
     os.getenv("ALLOWED_HOSTS"),
-    ["localhost", "127.0.0.1", "core", "api.localhost"],
+    ["localhost", "127.0.0.1", "core", "api.localhost"] if DEBUG else [],
 )
+if not DEBUG and not ALLOWED_HOSTS:
+    raise ImproperlyConfigured("ALLOWED_HOSTS must be set when DEBUG=False")
 
 cloudinary_cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
 cloudinary_api_key = os.getenv("CLOUDINARY_API_KEY", "").strip()
@@ -212,9 +214,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # CORS
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+if not DEBUG and "localhost" in FRONTEND_URL:
+    raise ImproperlyConfigured("FRONTEND_URL must be set to the production origin")
+
 CORS_ALLOWED_ORIGINS = _parse_csv(
     os.getenv("CORS_ALLOWED_ORIGINS"),
-    [
+    []
+    if not DEBUG
+    else [
         FRONTEND_URL,
         "http://localhost:5173",
         "http://localhost:5174",
@@ -228,12 +235,14 @@ CORS_ALLOWED_ORIGINS = _parse_csv(
 )
 CORS_ALLOWED_ORIGIN_REGEXES = _parse_csv(
     os.getenv("CORS_ALLOWED_ORIGIN_REGEXES"),
-    [r"^https://.*\.vercel\.app$"],
+    [] if not DEBUG else [r"^https://.*\.vercel\.app$"],
 )
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = _parse_csv(
     os.getenv("CSRF_TRUSTED_ORIGINS"),
-    [
+    []
+    if not DEBUG
+    else [
         FRONTEND_URL,
         "http://localhost",
         "http://127.0.0.1",
@@ -241,6 +250,10 @@ CSRF_TRUSTED_ORIGINS = _parse_csv(
         "https://127.0.0.1",
     ],
 )
+if not DEBUG and not CORS_ALLOWED_ORIGINS:
+    raise ImproperlyConfigured("CORS_ALLOWED_ORIGINS must be set when DEBUG=False")
+if not DEBUG and not CSRF_TRUSTED_ORIGINS:
+    raise ImproperlyConfigured("CSRF_TRUSTED_ORIGINS must be set when DEBUG=False")
 
 # drf_spectacular
 
@@ -294,8 +307,17 @@ REST_FRAMEWORK = {
         "burst": os.getenv(
             "THROTTLE_BURST_RATE", "10/second"
         ),  # Short burst protection
+        "code_execution": os.getenv(
+            "THROTTLE_CODE_EXECUTION_RATE", "12/minute"
+        ),  # Sandbox-backed code run/submission endpoints
     },
 }
+
+CODE_EXECUTION_MAX_BYTES = int(os.getenv("CODE_EXECUTION_MAX_BYTES", str(64 * 1024)))
+CODE_EXECUTION_TIMEOUT_SECONDS = float(os.getenv("CODE_EXECUTION_TIMEOUT_SECONDS", "15"))
+INTERNAL_REQUIRE_SIGNATURE = _parse_bool(
+    os.getenv("INTERNAL_REQUIRE_SIGNATURE"), default=not DEBUG
+)
 
 # JWT Configuration
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "RS256").upper()

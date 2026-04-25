@@ -5,6 +5,8 @@ import os
 import time
 from hashlib import sha256
 
+from django.conf import settings
+
 
 def _timing_safe_equal(left: str, right: str) -> bool:
     return hmac.compare_digest((left or "").strip(), (right or "").strip())
@@ -17,8 +19,8 @@ def authorize_internal_request(request) -> bool:
     Base requirement:
     - X-Internal-API-Key matches INTERNAL_API_KEY.
 
-    Optional hardened mode:
-    - Set INTERNAL_SIGNING_SECRET.
+    Hardened mode:
+    - Production requires INTERNAL_SIGNING_SECRET unless INTERNAL_REQUIRE_SIGNATURE=False.
     - Sender must provide:
       - X-Internal-Timestamp (unix seconds)
       - X-Internal-Signature (HMAC_SHA256 over "<timestamp>:<path>")
@@ -31,7 +33,7 @@ def authorize_internal_request(request) -> bool:
 
     signing_secret = os.getenv("INTERNAL_SIGNING_SECRET", "").strip()
     if not signing_secret:
-        return True
+        return not getattr(settings, "INTERNAL_REQUIRE_SIGNATURE", True)
 
     timestamp = request.headers.get("X-Internal-Timestamp", "").strip()
     signature = request.headers.get("X-Internal-Signature", "").strip()

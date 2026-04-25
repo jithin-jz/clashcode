@@ -41,55 +41,38 @@ graph TD
 
 ---
 
-## 🚀 Local Development Setup
+## 🚀 Production-Style Docker Setup
 
-### 1. Start Infrastructure (Databases)
-We use Docker for the heavy lifting (databases) while keeping the application code local.
+The supported deployment model is container-first. The Compose file builds and runs nginx, the production frontend image, Django, FastAPI services, Celery workers, the Python-only executor, and private backing services. Only nginx is published to the host.
+
+### 1. Configure Environment
+
+Create environment files from the examples and replace every placeholder.
+
 ```bash
-docker-compose up -d
+cp .env.example .env
+cp core/.env.example core/.env
+cp chat/.env.example chat/.env
+cp ai/.env.example ai/.env
 ```
 
-### 2. Configure Environment
-Ensure `.env` files in `core/`, `chat/`, and `ai/` are configured to point to `localhost`.
+Set strong values for:
 
-### 3. Start Services
+- `POSTGRES_PASSWORD`
+- Django `SECRET_KEY`
+- `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`
+- `INTERNAL_API_KEY` and `INTERNAL_SIGNING_SECRET`
+- OAuth, SMTP, Cloudinary, Firebase, and Razorpay credentials
 
-#### **Core Service (Django)**
+### 2. Start Services
+
 ```bash
-cd core
-python -m venv venv
-./venv/Scripts/activate  # Windows
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver 0.0.0.0:8000
+docker compose up -d --build
 ```
 
-#### **Chat Service (FastAPI)**
-```bash
-cd chat
-python -m venv venv
-./venv/Scripts/activate
-pip install -r requirements.txt
-uvicorn main:app --port 8001 --reload
-```
+Compose runs migrations and `collectstatic` before starting Gunicorn. Databases, Redis, Chroma, DynamoDB, and the executor stay private on the Docker network.
 
-#### **AI Service (FastAPI)**
-```bash
-cd ai
-python -m venv venv
-./venv/Scripts/activate
-pip install -r requirements.txt
-uvicorn main:app --port 8002 --reload
-```
-
-#### **Celery Workers (Required for Core)**
-```bash
-cd core
-# In a new terminal
-celery -A project worker --loglevel=info
-# In another terminal
-celery -A project beat --loglevel=info
-```
+For stronger Python execution isolation, install gVisor on the Docker host and set `CONTAINER_RUNTIME=runsc` in `.env`.
 
 ---
 

@@ -16,6 +16,7 @@ from challenges.serializers import ChallengeAdminSerializer, ChallengePublicSeri
 from challenges.services import ChallengeService
 from challenges.execution import PistonExecutionService
 from project.internal_auth import authorize_internal_request
+from auth.throttles import CodeExecutionRateThrottle
 from .tasks import (
     LEADERBOARD_CACHE_KEY,
     LEADERBOARD_CACHE_TIMEOUT,
@@ -176,65 +177,45 @@ class ChallengeViewSet(viewsets.ModelViewSet):
     @extend_schema(
         request=inline_serializer(
             name="ChallengeSubmissionRequest",
-            fields={
-                "passed": serializers.BooleanField(required=False),
-                "code": serializers.CharField(required=False),
+        fields={
+                "code": serializers.CharField(required=True),
             },
         ),
         responses={
             200: OpenApiTypes.OBJECT,
             400: OpenApiTypes.OBJECT,
         },
-        description="Submit code or validation result and update challenge progress. If 'code' is provided, it will be validated server-side using Piston.",
+        description="Submit code and update challenge progress after server-side validation.",
     )
-    @decorators.action(detail=True, methods=["post"])
+    @decorators.action(
+        detail=True, methods=["post"], throttle_classes=[CodeExecutionRateThrottle]
+    )
     def submit(self, request, slug=None):
         challenge = self.get_object()
         user_code = request.data.get("code")
-        
-        # If code is provided, perform server-side validation
-        if user_code:
-            full_code = f"{user_code}\n\n{challenge.test_code}"
-            execution_result = PistonExecutionService.execute_code("python", full_code)
-            run_data = execution_result.get("run", {})
-            exit_code = run_data.get("code", -1)
-            stderr = run_data.get("stderr", "")
-            
-            passed = (exit_code == 0) and not stderr
-            
-            if not passed:
-                return Response(
-                    {
-                        "status": "failed",
-                        "error": "Server-side validation failed.",
-                        "stdout": run_data.get("stdout"),
-                        "stderr": stderr,
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        else:
-            # Fallback to legacy client-side 'passed' flag
-            raw_passed = request.data.get("passed", None)
-            if raw_passed is None:
-                raw_passed = request.query_params.get("passed", None)
+        if not isinstance(user_code, str) or not user_code.strip():
+            return Response(
+                {"status": "failed", "error": "Code is required for submission."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            if isinstance(raw_passed, bool):
-                passed = raw_passed
-            elif isinstance(raw_passed, str):
-                passed = raw_passed.strip().lower() in {"1", "true", "yes", "on"}
-            elif isinstance(raw_passed, (int, float)):
-                passed = raw_passed == 1
-            else:
-                passed = False
+        full_code = f"{user_code}\n\n{challenge.test_code}"
+        execution_result = PistonExecutionService.execute_code("python", full_code)
+        run_data = execution_result.get("run", {})
+        exit_code = run_data.get("code", -1)
+        stderr = run_data.get("stderr", "")
 
-            if not passed:
-                return Response(
-                    {
-                        "status": "failed",
-                        "error": "Client-side validation failed.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        passed = (exit_code == 0) and not stderr
+        if not passed:
+            return Response(
+                {
+                    "status": "failed",
+                    "error": "Server-side validation failed.",
+                    "stdout": run_data.get("stdout"),
+                    "stderr": stderr,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         result = ChallengeService.process_submission(request.user, challenge, passed)
         return Response(result, status=status.HTTP_200_OK)
@@ -251,11 +232,13 @@ class ChallengeViewSet(viewsets.ModelViewSet):
         },
         description="Execute code server-side against challenge test cases without submitting.",
     )
-    @decorators.action(detail=True, methods=["post"])
+    @decorators.action(
+        detail=True, methods=["post"], throttle_classes=[CodeExecutionRateThrottle]
+    )
     def execute(self, request, slug=None):
         challenge = self.get_object()
         user_code = request.data.get("code", "")
-        
+
         full_code = f"{user_code}\n\n{challenge.test_code}"
         execution_result = PistonExecutionService.execute_code("python", full_code)
         run_data = execution_result.get("run", {})

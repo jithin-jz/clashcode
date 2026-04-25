@@ -98,3 +98,22 @@ class NotificationRateThrottle(SimpleRateThrottle):
             ident = self.get_ident(request)
 
         return self.cache_format % {"scope": self.scope, "ident": ident}
+
+
+class CodeExecutionRateThrottle(SimpleRateThrottle):
+    """
+    Throttle code execution and submission endpoints.
+
+    These endpoints fan out to the sandbox runtime, so they need a tighter,
+    user-scoped limit than ordinary API reads.
+    """
+
+    scope = "code_execution"
+
+    def get_cache_key(self, request, _view):
+        if request.user.is_authenticated:
+            ident = request.user.pk
+        else:
+            ident = self.get_ident(request)
+
+        return self.cache_format % {"scope": self.scope, "ident": ident}

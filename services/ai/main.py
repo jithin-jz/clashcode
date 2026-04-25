@@ -181,7 +181,7 @@ def _authorize_internal_request(
 
     signing_secret = (settings.INTERNAL_SIGNING_SECRET or "").strip()
     if not signing_secret:
-        return True
+        return not settings.INTERNAL_REQUIRE_SIGNATURE
 
     if not timestamp or not signature:
         return False

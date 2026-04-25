@@ -39,29 +39,42 @@ graph TD
 
 ---
 
-## 🚀 Local Development
+## 🚀 Production-Style Docker Run
 
-### 1. Start Infrastructure
-Start the databases and other required services using Docker Compose.
+The production path is container-first: nginx, the built frontend, Django, FastAPI services, Celery, databases, Redis, Chroma, DynamoDB Local, and the Python-only executor all run on the private Compose network. Only nginx is published to the host.
+
+### 1. Configure Secrets
+
+Copy the example files and replace every placeholder with real production values.
+
 ```bash
-docker-compose -f services/docker-compose.yml up -d
+cp services/.env.example services/.env
+cp services/core/.env.example services/core/.env
+cp services/chat/.env.example services/chat/.env
+cp services/ai/.env.example services/ai/.env
 ```
 
-### 2. Backend Services
-Run the backend services directly on your host machine.
-- **Core**: `cd services/core && python manage.py runserver`
-- **Chat**: `cd services/chat && uvicorn main:app --port 8001`
-- **AI**: `cd services/ai && uvicorn main:app --port 8002`
+Required production values include `SECRET_KEY`, database password, JWT keys, OAuth credentials, SMTP credentials, payment keys, `INTERNAL_API_KEY`, and `INTERNAL_SIGNING_SECRET`.
 
-See the **[Backend README](services/README.md)** for detailed setup instructions.
+### 2. Start The Stack
 
-### 3. Frontend
-Run the frontend development server.
+```bash
+docker compose -f services/docker-compose.yml up -d --build
+```
+
+The gateway is available on `http://localhost` by default, or the port configured by `NGINX_HTTP_PORT`.
+
+## 🛠️ Local Frontend Development
+
+For UI-only development, you can still run Vite locally with `VITE_API_URL=/api` while the Docker stack is running:
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
+Do not expose Postgres, Redis, Chroma, DynamoDB, or the executor directly in production. For stronger sandboxing, install gVisor on the Docker host and set `CONTAINER_RUNTIME=runsc` in `services/.env`.
 
 ---
 
