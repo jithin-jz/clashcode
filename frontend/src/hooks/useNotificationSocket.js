@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import useNotificationStore from "../stores/useNotificationStore";
 import { buildWebSocketUrl } from "../utils/websocketUrl";
 
@@ -6,28 +7,33 @@ import { buildWebSocketUrl } from "../utils/websocketUrl";
  * Hook to manage the Notification WebSocket connection.
  * Handles auto-reconnect and message routing to the store.
  */
-export const useNotificationSocket = () => {
-  const { wsShouldReconnect, isWSConnected, set, get } = useNotificationStore((s) => ({
-    wsShouldReconnect: s.wsShouldReconnect,
-    isWSConnected: s.isWSConnected,
-    set: s.set,
-    get: s.get || (() => s), // Fallback if get is not in slice
-  }));
+export const useNotificationSocket = (userId) => {
+  const { isWSConnected } = useNotificationStore(
+    useShallow((s) => ({
+      isWSConnected: s.isWSConnected,
+    })),
+  );
   
   const socketRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
+  const activeUserIdRef = useRef(null);
 
-  const connectWS = () => {
-    if (!useNotificationStore.getState().wsShouldReconnect) return;
+  const connectWS = useCallback((id) => {
+    if (!id) return;
     
+    // Prevent double connection for same user
     if (socketRef.current) {
       if (
         socketRef.current.readyState === WebSocket.OPEN ||
         socketRef.current.readyState === WebSocket.CONNECTING
       ) {
-        return;
+        if (activeUserIdRef.current === id) return;
+        // If ID changed, close old one
+        socketRef.current.close();
       }
-      socketRef.current.close();
     }
+
+    activeUserIdRef.current = id;
 
     const WS_URL = buildWebSocketUrl({
       explicitUrl:
@@ -40,6 +46,7 @@ export const useNotificationSocket = () => {
       token: localStorage.getItem("clashcode_access_token"),
     });
 
+    console.info(`[Notifications] Connecting for user ${id}...`);
     const socket = new WebSocket(WS_URL);
     socketRef.current = socket;
 
@@ -65,11 +72,19 @@ export const useNotificationSocket = () => {
       }
     };
 
-    socket.onclose = () => {
-      useNotificationStore.setState({ isWSConnected: false, socket: null });
-      if (useNotificationStore.getState().wsShouldReconnect) {
-        console.warn("[Notifications] WebSocket closed. Retrying in 5s...");
-        setTimeout(() => connectWS(), 5000);
+    socket.onclose = (event) => {
+      // Only reconnect if this is still the active socket ref
+      if (socketRef.current === socket) {
+        useNotificationStore.setState({ isWSConnected: false, socket: null });
+        socketRef.current = null;
+        
+        if (activeUserIdRef.current) {
+          console.warn("[Notifications] WebSocket closed. Reconnecting in 5s...", event.code);
+          if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connectWS(activeUserIdRef.current);
+          }, 5000);
+        }
       }
     };
 
@@ -77,18 +92,37 @@ export const useNotificationSocket = () => {
       console.error("[Notifications] WebSocket error:", error);
       socket.close();
     };
-  };
+  }, []);
 
   useEffect(() => {
-    if (useNotificationStore.getState().wsShouldReconnect && !isWSConnected) {
-      connectWS();
-    }
-    return () => {
+    if (userId) {
+      connectWS(userId);
+    } else {
+      // User logged out
+      activeUserIdRef.current = null;
       if (socketRef.current) {
         socketRef.current.close();
+        socketRef.current = null;
+      }
+    }
+
+    return () => {
+      // We do NOT close the socket here anymore unless the component unmounts
+      // and we want to be sure. But if we use a global store, maybe we want it to persist?
+      // Actually, unmount of AppContent happens on full reload, so it's fine.
+    };
+  }, [userId, connectWS]);
+
+  // Handle unmount specifically
+  useEffect(() => {
+    return () => {
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
       }
     };
-  }, [isWSConnected]);
+  }, []);
 
-  return { connectWS };
+  return useMemo(() => ({ connectWS }), [connectWS]);
 };

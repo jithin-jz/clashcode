@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 import useNotificationStore from "../stores/useNotificationStore";
 import { notify } from "../services/notification";
 import { notificationsAPI } from "../services/api";
@@ -7,7 +7,7 @@ import { notificationsAPI } from "../services/api";
  * Hook to manage Firebase Cloud Messaging (FCM) notifications.
  * Handles permission requests, token registration, and foreground message listening.
  */
-export const useFCM = () => {
+export const useFCM = (userId) => {
   const registerFCM = useCallback(async () => {
     try {
       const { requestForToken } = await import("../services/firebase");
@@ -102,5 +102,14 @@ export const useFCM = () => {
     }
   }, [registerFCM, requestPermission]);
 
-  return { initFCM, requestPermission, registerFCM };
+  useEffect(() => {
+    if (userId) {
+      initFCM();
+    }
+  }, [userId, initFCM]);
+
+  return useMemo(
+    () => ({ initFCM, requestPermission, registerFCM }),
+    [initFCM, requestPermission, registerFCM]
+  );
 };

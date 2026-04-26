@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 import useAuthStore from "../stores/useAuthStore";
 import { isBoneyard } from "../utils/isBoneyard";
 
@@ -13,7 +14,14 @@ const PageLoader = () => (
  * Requires user to be authenticated AND be staff/superuser
  */
 const AdminRoute = ({ children }) => {
-  const { isAuthenticated, user, loading, isInitialized } = useAuthStore();
+  const { isAuthenticated, user, loading, isInitialized } = useAuthStore(
+    useShallow((s) => ({
+      isAuthenticated: s.isAuthenticated,
+      user: s.user,
+      loading: s.loading,
+      isInitialized: s.isInitialized,
+    })),
+  );
 
   if (loading || !isInitialized) {
     return <PageLoader />;

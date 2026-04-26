@@ -1,14 +1,6 @@
 import { create } from "zustand";
 import { buildWebSocketUrl } from "../utils/websocketUrl";
 
-const WS_URL = buildWebSocketUrl({
-  explicitUrl: import.meta.env.VITE_WS_URL || import.meta.env.VITE_CHAT_URL,
-  apiUrl: import.meta.env.VITE_API_URL,
-  defaultPath: "/ws/chat",
-  legacyPaths: ["/chat", "/ws"],
-  label: "Chat",
-});
-
 const useChatStore = create((set, get) => ({
   // State
   socket: null,
@@ -29,8 +21,7 @@ const useChatStore = create((set, get) => ({
   error: null,
 
   // Actions
-  connect: () => {
-    const roomName = "global";
+  connect: (roomName = "global") => {
     set({ shouldReconnect: true, currentRoom: roomName });
 
     // Prevent multiple connections to the SAME room
@@ -60,7 +51,15 @@ const useChatStore = create((set, get) => ({
       }),
     });
 
-    const wsUrl = `${WS_URL}/${roomName}`;
+    const wsUrl = buildWebSocketUrl({
+      explicitUrl: import.meta.env.VITE_WS_URL || import.meta.env.VITE_CHAT_URL,
+      apiUrl: import.meta.env.VITE_API_URL,
+      defaultPath: `/ws/chat/${roomName}`,
+      legacyPaths: ["/chat", "/ws"],
+      label: "Chat",
+      token: localStorage.getItem("clashcode_access_token"),
+    });
+
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = async () => {

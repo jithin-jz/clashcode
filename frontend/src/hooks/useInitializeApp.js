@@ -1,12 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import useAuthStore from "../stores/useAuthStore";
-import useNotificationStore from "../stores/useNotificationStore";
-import { useNotificationSocket } from "./useNotificationSocket";
 import { useFCM } from "./useFCM";
+import { useNotificationSocket } from "./useNotificationSocket";
 
 /**
- * Custom hook to initialize authentication and notifications.
+ * Root initialization hook.
+ * Handles authentication check and triggers notification services.
  */
 export const useInitializeApp = () => {
   const { checkAuth, user, authLoading } = useAuthStore(
@@ -16,34 +16,24 @@ export const useInitializeApp = () => {
       authLoading: s.loading,
     })),
   );
-  
-  const { initFCM } = useFCM();
-  const { connectWS } = useNotificationSocket();
 
-  const authInitRef = useRef(false);
-  const notifInitUserIdRef = useRef(null);
+  // Initialize notifications hooks (they handle their own effects internally)
+  useFCM(user?.id);
+  useNotificationSocket(user?.id);
 
   useEffect(() => {
-    if (authInitRef.current) return;
-    authInitRef.current = true;
+    // Initial authentication check
     checkAuth();
   }, [checkAuth]);
 
-  useEffect(() => {
-    const userId = user?.id;
-    if (!userId) {
-      notifInitUserIdRef.current = null;
-      return;
-    }
-    if (notifInitUserIdRef.current !== userId) {
-      notifInitUserIdRef.current = userId;
-      
-      // Modular initialization
-      useNotificationStore.setState({ wsShouldReconnect: true });
-      initFCM();
-      connectWS();
-    }
-  }, [user, initFCM, connectWS]);
+  const isInitialized = !authLoading;
 
-  return { user, authLoading };
+  return useMemo(
+    () => ({
+      isInitialized,
+      user,
+      loading: authLoading,
+    }),
+    [isInitialized, user, authLoading],
+  );
 };
