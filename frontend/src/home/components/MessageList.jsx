@@ -72,7 +72,7 @@ const RenderMessage = ({ text }) => {
 };
 
 // Reaction display & picker
-const ReactionBar = ({ reactions, onReact, username }) => {
+const ReactionBar = ({ reactions, onReact, username, isOwn }) => {
   const [showPicker, setShowPicker] = useState(false);
   const pickerRef = useRef(null);
 
@@ -89,21 +89,21 @@ const ReactionBar = ({ reactions, onReact, username }) => {
   const hasReactions = reactions && Object.keys(reactions).length > 0;
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap relative">
+    <div className="flex items-center gap-1 min-w-max relative">
       {hasReactions &&
         Object.entries(reactions).map(([emoji, users]) => (
           <button
             key={emoji}
             onClick={() => onReact(emoji)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] border transition-all shadow-sm ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border transition-all shadow-sm backdrop-blur-md ${
               users.includes(username)
-                ? "bg-emerald-500/25 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/35"
-                : "bg-white/10 border-white/20 text-neutral-300 hover:bg-white/20 hover:border-white/30"
+                ? "bg-emerald-500/30 border-emerald-500/50 text-emerald-200 hover:bg-emerald-500/40"
+                : "bg-black/60 border-white/10 text-neutral-400 hover:bg-white/10 hover:border-white/20"
             }`}
             title={users.join(", ")}
           >
-            <span className="text-sm">{emoji}</span>
-            <span className="font-mono text-[10px] font-semibold">
+            <span className="text-xs">{emoji}</span>
+            <span className="font-mono font-bold">
               {users.length}
             </span>
           </button>
@@ -111,10 +111,10 @@ const ReactionBar = ({ reactions, onReact, username }) => {
       <div className="relative" ref={pickerRef}>
         <button
           onClick={() => setShowPicker(!showPicker)}
-          className="w-6 h-6 rounded-full flex items-center justify-center text-neutral-500 hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30 transition-all"
+          className="w-5 h-5 rounded-full flex items-center justify-center text-neutral-500 hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30 transition-all"
           title="Add reaction"
         >
-          <Smile size={14} />
+          <Smile size={12} />
         </button>
         <AnimatePresence>
           {showPicker && (
@@ -122,7 +122,7 @@ const ReactionBar = ({ reactions, onReact, username }) => {
               initial={{ opacity: 0, scale: 0.8, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 10 }}
-              className="absolute bottom-8 left-0 z-50 flex gap-1.5 p-2 bg-[#0a0a0a] border border-white/20 rounded-xl shadow-2xl backdrop-blur-xl"
+              className={`absolute bottom-7 ${isOwn ? "right-0" : "left-0"} z-50 flex gap-1 p-1.5 bg-[#0a0a0a]/95 border border-white/10 rounded-lg shadow-2xl backdrop-blur-xl min-w-max`}
             >
               {REACTION_EMOJIS.map((emoji) => (
                 <button
@@ -131,7 +131,7 @@ const ReactionBar = ({ reactions, onReact, username }) => {
                     onReact(emoji);
                     setShowPicker(false);
                   }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/15 hover:scale-110 transition-all text-base"
+                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 hover:scale-110 transition-all text-sm"
                 >
                   {emoji}
                 </button>
@@ -381,7 +381,7 @@ const MessageList = ({
 
             {/* Message Content */}
             <div
-              className={`flex flex-col gap-1 max-w-[70%] ${isOwn ? "items-end" : "items-start"}`}
+              className={`relative flex flex-col gap-1 max-w-[70%] ${isOwn ? "items-end" : "items-start"}`}
             >
               {/* Username (only for others) */}
               {!isOwn && (
@@ -486,48 +486,50 @@ const MessageList = ({
                 </div>
               </div>
 
-              {/* Action Buttons (visible on hover) */}
-              {editingMsgId !== msg.timestamp && (
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 pt-0.5">
-                  {isOwn && (
-                    <>
-                      <button
-                        onClick={() => handleEditInit(msg)}
-                        className="text-neutral-600 hover:text-emerald-500 transition-colors p-1 rounded hover:bg-white/5"
-                        title="Edit"
-                      >
-                        <Edit size={11} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(msg.timestamp)}
-                        className="text-neutral-600 hover:text-red-500 transition-colors p-1 rounded hover:bg-white/5"
-                        title="Delete"
-                      >
-                        <Trash2 size={11} />
-                      </button>
-                    </>
-                  )}
-                  {user?.is_admin && (
-                    <button
-                      onClick={() => pinMessage(msg.timestamp, msg.message)}
-                      className="text-neutral-600 hover:text-amber-400 transition-colors p-1 rounded hover:bg-white/5"
-                      title="Pin message"
-                    >
-                      <Pin size={11} />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Reaction Bar - positioned below message */}
+              {/* Unified Toolbar (Actions + Reactions) */}
               <div
-                className={`flex items-center gap-1 mt-1.5 ${isOwn ? "justify-end" : "justify-start"}`}
+                className={`absolute bottom-0 ${isOwn ? "right-2" : "left-2"} translate-y-1/2 flex items-center gap-2 z-20`}
               >
+                {/* Reactions */}
                 <ReactionBar
                   reactions={msg.reactions}
                   onReact={(emoji) => toggleReaction(msg.timestamp, emoji)}
                   username={user?.username}
+                  isOwn={isOwn}
                 />
+
+                {/* Edit/Delete Actions (visible on hover) */}
+                {editingMsgId !== msg.timestamp && (
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 bg-black/40 backdrop-blur-sm rounded-full px-1.5 py-0.5 border border-white/5">
+                    {isOwn && (
+                      <>
+                        <button
+                          onClick={() => handleEditInit(msg)}
+                          className="text-neutral-400 hover:text-emerald-400 transition-colors p-1"
+                          title="Edit"
+                        >
+                          <Edit size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(msg.timestamp)}
+                          className="text-neutral-400 hover:text-red-400 transition-colors p-1"
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </>
+                    )}
+                    {user?.is_admin && (
+                      <button
+                        onClick={() => pinMessage(msg.timestamp, msg.message)}
+                        className="text-neutral-400 hover:text-amber-400 transition-colors p-1"
+                        title="Pin message"
+                      >
+                        <Pin size={12} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </Motion.div>

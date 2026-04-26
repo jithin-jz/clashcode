@@ -112,16 +112,30 @@ const useChatStore = create((set, get) => ({
             messages: state.messages.map((msg) => {
               if (msg.timestamp !== data.timestamp) return msg;
               const reactions = { ...(msg.reactions || {}) };
-              const users = reactions[data.emoji] || [];
-              if (users.includes(data.username)) {
-                const filtered = users.filter((u) => u !== data.username);
+              const currentUsers = reactions[data.emoji] || [];
+              const isRemoving = currentUsers.includes(data.username);
+
+              if (isRemoving) {
+                // Just remove the user from this specific emoji
+                const filtered = currentUsers.filter((u) => u !== data.username);
                 if (filtered.length === 0) {
                   delete reactions[data.emoji];
                 } else {
                   reactions[data.emoji] = filtered;
                 }
               } else {
-                reactions[data.emoji] = [...users, data.username];
+                // Adding a new reaction: Remove user from ALL other emojis first (mutually exclusive)
+                Object.keys(reactions).forEach((emoji) => {
+                  reactions[emoji] = reactions[emoji].filter(
+                    (u) => u !== data.username,
+                  );
+                  if (reactions[emoji].length === 0) delete reactions[emoji];
+                });
+                // Add to the new emoji
+                reactions[data.emoji] = [
+                  ...(reactions[data.emoji] || []),
+                  data.username,
+                ];
               }
               return { ...msg, reactions };
             }),
