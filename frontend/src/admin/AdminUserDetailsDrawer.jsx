@@ -7,9 +7,24 @@ import {
 } from "../components/ui/dialog";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
+import { 
+  User as UserIcon, 
+  Mail, 
+  Calendar, 
+  Shield, 
+  Activity, 
+  FileText, 
+  Flag, 
+  ShoppingBag, 
+  Trophy, 
+  Clock,
+  ExternalLink,
+  MessageSquare
+} from "lucide-react";
 import { authAPI } from "../services/api";
 import { notify } from "../services/notification";
 import { getErrorMessage } from "../utils/errorUtils";
+import { Badge } from "../components/ui/badge";
 
 const AdminUserDetailsDrawer = ({
   username,
@@ -19,9 +34,12 @@ const AdminUserDetailsDrawer = ({
 }) => {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview"); // overview, history, moderation
+  
   const [noteBody, setNoteBody] = useState("");
   const [reportTitle, setReportTitle] = useState("");
   const [reportSummary, setReportSummary] = useState("");
+  
   const [savingRole, setSavingRole] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [savingReport, setSavingReport] = useState(false);
@@ -42,6 +60,7 @@ const AdminUserDetailsDrawer = ({
   useEffect(() => {
     if (open && username) {
       fetchDetails();
+      setActiveTab("overview");
     }
   }, [open, username]);
 
@@ -98,254 +117,260 @@ const AdminUserDetailsDrawer = ({
     }
   };
 
+  const tabs = [
+    { id: "overview", label: "Overview", icon: Activity },
+    { id: "history", label: "History", icon: Clock },
+    { id: "moderation", label: "Moderation", icon: Shield },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto border-white/10 bg-[#050505] text-white">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl border-white/10 bg-[#0A0A0A] p-0 overflow-hidden text-white sm:rounded-2xl">
+        <DialogHeader className="sr-only">
           <DialogTitle>User Workspace</DialogTitle>
         </DialogHeader>
 
         {loading || !details ? (
-          <div className="space-y-3">
-            <div className="admin-panel h-24 animate-pulse bg-white/[0.02]" />
-            <div className="admin-panel h-44 animate-pulse bg-white/[0.02]" />
-            <div className="admin-panel h-44 animate-pulse bg-white/[0.02]" />
+          <div className="p-8 space-y-6">
+            <div className="flex items-center gap-4 animate-pulse">
+              <div className="h-16 w-16 rounded-full bg-white/5" />
+              <div className="space-y-2 flex-1">
+                <div className="h-4 w-1/3 rounded bg-white/5" />
+                <div className="h-3 w-1/2 rounded bg-white/5" />
+              </div>
+            </div>
+            <div className="h-64 w-full animate-pulse rounded-xl bg-white/[0.02]" />
           </div>
         ) : (
-          <div className="space-y-5">
-            <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
-              <div className="admin-panel p-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
-                    {details.user?.profile?.avatar_url ? (
-                      <img
-                        src={details.user.profile.avatar_url}
-                        alt={details.user.username}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-lg font-bold text-neutral-500">
-                        {details.user?.username?.[0]?.toUpperCase()}
-                      </span>
-                    )}
+          <div className="flex flex-col h-full max-h-[85vh]">
+            {/* Header Section */}
+            <div className="relative border-b border-white/5 bg-white/[0.02] p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative group">
+                    <div className="h-16 w-16 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] transition-transform group-hover:scale-105">
+                      {details.user?.profile?.avatar_url ? (
+                        <img
+                          src={details.user.profile.avatar_url}
+                          alt={details.user.username}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500/20 to-purple-500/20">
+                          <UserIcon size={24} className="text-indigo-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-[#0A0A0A] ${details.summary?.last_login ? 'bg-emerald-500' : 'bg-neutral-600'}`} />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-lg font-semibold text-neutral-100">
+                  
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
                       {details.user?.username}
+                      <Badge variant="outline" className="text-[9px] uppercase tracking-wider h-4 border-white/10 bg-white/5 font-mono">
+                        ID: {details.user?.id || "N/A"}
+                      </Badge>
+                    </h2>
+                    <div className="mt-1 flex items-center gap-3 text-sm text-neutral-500">
+                      <span className="flex items-center gap-1.5 whitespace-nowrap"><Mail size={12} /> {details.user?.email}</span>
                     </div>
-                    <div className="text-sm text-neutral-500">
-                      {details.user?.email}
-                    </div>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      <div className="admin-subpanel p-3">
-                        <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
-                          Joined
-                        </div>
-                        <div className="mt-1 text-sm text-neutral-200">
-                          {details.summary?.joined_at
-                            ? new Date(
-                                details.summary.joined_at,
-                              ).toLocaleDateString()
-                            : "N/A"}
-                        </div>
-                      </div>
-                      <div className="admin-subpanel p-3">
-                        <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
-                          Last Login
-                        </div>
-                        <div className="mt-1 text-sm text-neutral-200">
-                          {details.summary?.last_login
-                            ? new Date(
-                                details.summary.last_login,
-                              ).toLocaleString()
-                            : "Never"}
-                        </div>
-                      </div>
-                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 sm:self-start">
+                  <div className="relative">
+                    <select
+                      value={roleValue}
+                      onChange={handleRoleChange}
+                      disabled={savingRole}
+                      className="appearance-none bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 pr-8 text-xs font-medium text-neutral-300 hover:bg-white/10 transition-colors focus:outline-none focus:ring-1 focus:ring-white/20"
+                    >
+                      <option value="user">User</option>
+                      <option value="staff">Staff</option>
+                      <option value="superuser">Superuser</option>
+                    </select>
+                    <Shield size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
                   </div>
                 </div>
               </div>
 
-              <div className="admin-panel p-4">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
-                  Role Management
-                </div>
-                <select
-                  value={roleValue}
-                  onChange={handleRoleChange}
-                  disabled={savingRole}
-                  className="admin-control mt-3 h-10 w-full rounded-md px-3 text-sm"
-                >
-                  <option value="user">User</option>
-                  <option value="staff">Staff</option>
-                  <option value="superuser">Superuser</option>
-                </select>
-                <div className="mt-4 text-[11px] text-neutral-500">
-                  Use this to promote or demote access without leaving the user
-                  panel.
-                </div>
+              {/* Tabs */}
+              <div className="mt-6 flex items-center gap-1 overflow-x-auto ds-scrollbar pb-1 px-5 sm:px-6">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-medium transition-all whitespace-nowrap ${
+                        activeTab === tab.id
+                          ? "bg-white text-black shadow-lg shadow-white/5"
+                          : "text-neutral-500 hover:bg-white/5 hover:text-neutral-300"
+                      }`}
+                    >
+                      <Icon size={14} />
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <MetricCard
-                label="Completed"
-                value={details.summary?.completed_challenges || 0}
-              />
-              <MetricCard
-                label="Unlocked"
-                value={details.summary?.unlocked_challenges || 0}
-              />
-              <MetricCard
-                label="Purchases"
-                value={details.summary?.purchase_count || 0}
-              />
-              <MetricCard
-                label="Open Reports"
-                value={details.summary?.open_reports || 0}
-              />
-            </div>
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto ds-scrollbar p-5 sm:p-6">
+              {activeTab === "overview" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <StatBox icon={Trophy} label="Completed" value={details.summary?.completed_challenges || 0} color="text-yellow-400" />
+                    <StatBox icon={ExternalLink} label="Unlocked" value={details.summary?.unlocked_challenges || 0} color="text-blue-400" />
+                    <StatBox icon={ShoppingBag} label="Purchases" value={details.summary?.purchase_count || 0} color="text-purple-400" />
+                    <StatBox icon={Flag} label="Reports" value={details.summary?.open_reports || 0} color="text-red-400" />
+                  </div>
 
-            <div className="grid gap-5 xl:grid-cols-2">
-              <div className="admin-panel p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-neutral-100">
-                    Admin Notes
-                  </h3>
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
-                    Internal
-                  </span>
-                </div>
-                <div className="mt-4 space-y-3">
-                  <Textarea
-                    value={noteBody}
-                    onChange={(e) => setNoteBody(e.target.value)}
-                    placeholder="Leave context for other admins..."
-                    className="admin-control min-h-[100px] resize-none"
-                  />
-                  <Button
-                    onClick={handleAddNote}
-                    disabled={savingNote || !noteBody.trim()}
-                    className="h-9 bg-white text-black hover:bg-zinc-200"
-                  >
-                    {savingNote ? "Saving..." : "Add Note"}
-                  </Button>
-                  <div className="space-y-2">
-                    {(details.notes || []).length === 0 ? (
-                      <div className="text-sm text-neutral-500">
-                        No notes yet.
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                      <div className="flex items-center gap-2 text-xs font-medium text-neutral-500 uppercase tracking-wider mb-3">
+                        <Calendar size={14} /> Account Activity
                       </div>
-                    ) : (
-                      details.notes.map((note) => (
-                        <div
-                          key={note.id}
-                          className="admin-subpanel space-y-1 p-3"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-xs font-medium text-neutral-200">
-                              {note.admin}
-                            </span>
-                            <span className="text-[10px] text-neutral-500">
-                              {new Date(note.created_at).toLocaleString()}
-                            </span>
-                          </div>
-                          <p className="text-sm text-neutral-400">
-                            {note.body}
-                          </p>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-neutral-400">Joined Date</span>
+                          <span className="text-xs font-medium text-neutral-200">
+                            {details.summary?.joined_at ? new Date(details.summary.joined_at).toLocaleDateString() : "N/A"}
+                          </span>
                         </div>
-                      ))
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-neutral-400">Last Login</span>
+                          <span className="text-xs font-medium text-neutral-200">
+                            {details.summary?.last_login ? new Date(details.summary.last_login).toLocaleString() : "Never"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 flex flex-col justify-center items-center text-center">
+                      <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-2">
+                        <Activity size={20} />
+                      </div>
+                      <div className="text-xs font-medium text-neutral-200">Account Health</div>
+                      <div className="text-[10px] text-neutral-500 mt-1 uppercase tracking-tighter">Good Standing</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "history" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <CompactHistoryCard
+                    title="Recent Challenges"
+                    icon={Trophy}
+                    rows={details.recent_completions || []}
+                    renderRow={(row) => (
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-medium text-neutral-200 truncate pr-2">{row.challenge}</span>
+                        <Badge variant="outline" className="bg-yellow-500/10 border-yellow-500/20 text-yellow-500 text-[10px] shrink-0">
+                          {row.stars} ★
+                        </Badge>
+                      </div>
                     )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="admin-panel p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-neutral-100">
-                    Reports Queue
-                  </h3>
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
-                    Moderation
-                  </span>
-                </div>
-                <div className="mt-4 space-y-3">
-                  <InputRow
-                    value={reportTitle}
-                    onChange={setReportTitle}
-                    placeholder="Report title"
                   />
-                  <Textarea
-                    value={reportSummary}
-                    onChange={(e) => setReportSummary(e.target.value)}
-                    placeholder="Describe the issue or context..."
-                    className="admin-control min-h-[100px] resize-none"
-                  />
-                  <Button
-                    onClick={handleCreateReport}
-                    disabled={
-                      savingReport ||
-                      !reportTitle.trim() ||
-                      !reportSummary.trim()
-                    }
-                    className="h-9 bg-white text-black hover:bg-zinc-200"
-                  >
-                    {savingReport ? "Saving..." : "Create Report"}
-                  </Button>
-                  <div className="space-y-2">
-                    {(details.reports || []).length === 0 ? (
-                      <div className="text-sm text-neutral-500">
-                        No reports for this user.
+                  <CompactHistoryCard
+                    title="Recent Purchases"
+                    icon={ShoppingBag}
+                    rows={details.recent_purchases || []}
+                    renderRow={(row) => (
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-medium text-neutral-200 truncate pr-2">{row.name}</span>
+                        <span className="text-neutral-500 font-mono text-[11px] shrink-0">{row.cost} XP</span>
                       </div>
-                    ) : (
-                      details.reports.map((report) => (
-                        <div
-                          key={report.id}
-                          className="admin-subpanel space-y-1 p-3"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-xs font-medium text-neutral-200">
-                              {report.title}
-                            </span>
-                            <span className="text-[10px] uppercase tracking-wider text-neutral-500">
-                              {report.status}
-                            </span>
-                          </div>
-                          <p className="text-sm text-neutral-400">
-                            {report.summary}
-                          </p>
-                        </div>
-                      ))
                     )}
+                  />
+                </div>
+              )}
+
+              {activeTab === "moderation" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  {/* Admin Notes */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <h3 className="text-xs font-semibold text-white flex items-center gap-2 uppercase tracking-widest">
+                        <MessageSquare size={14} className="text-neutral-500" /> Admin Notes
+                      </h3>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 focus-within:border-white/20 transition-colors">
+                      <Textarea
+                        value={noteBody}
+                        onChange={(e) => setNoteBody(e.target.value)}
+                        placeholder="Type an internal note..."
+                        className="bg-transparent border-none p-0 min-h-[60px] text-sm resize-none focus-visible:ring-0 placeholder:text-neutral-600"
+                      />
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          onClick={handleAddNote}
+                          disabled={savingNote || !noteBody.trim()}
+                          size="sm"
+                          className="h-7 px-3 bg-white text-black hover:bg-neutral-200 text-[11px] font-bold"
+                        >
+                          {savingNote ? "Saving..." : "Add Note"}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {(details.notes || []).length === 0 ? (
+                        <p className="text-center text-xs text-neutral-600 py-4 italic">No notes recorded yet.</p>
+                      ) : (
+                        details.notes.map((note) => (
+                          <div key={note.id} className="rounded-xl border border-white/5 bg-white/[0.01] p-3 group">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-tighter">{note.admin}</span>
+                              <span className="text-[9px] text-neutral-600 font-mono uppercase">
+                                {new Date(note.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <p className="text-xs text-neutral-400 leading-relaxed">{note.body}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="h-px bg-white/5 mx-2" />
+
+                  {/* Reports Queue */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <h3 className="text-xs font-semibold text-white flex items-center gap-2 uppercase tracking-widest">
+                        <Flag size={14} className="text-neutral-500" /> Create Report
+                      </h3>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 space-y-3">
+                      <input
+                        value={reportTitle}
+                        onChange={(e) => setReportTitle(e.target.value)}
+                        placeholder="Subject title..."
+                        className="w-full bg-transparent border-b border-white/5 pb-2 text-sm text-white focus:outline-none placeholder:text-neutral-600"
+                      />
+                      <Textarea
+                        value={reportSummary}
+                        onChange={(e) => setReportSummary(e.target.value)}
+                        placeholder="Context/Reasoning..."
+                        className="bg-transparent border-none p-0 min-h-[60px] text-sm resize-none focus-visible:ring-0 placeholder:text-neutral-600"
+                      />
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={handleCreateReport}
+                          disabled={savingReport || !reportTitle.trim() || !reportSummary.trim()}
+                          size="sm"
+                          className="h-7 px-3 border border-white/10 bg-transparent text-white hover:bg-white/5 text-[11px] font-bold"
+                        >
+                          {savingReport ? "..." : "File Report"}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="grid gap-5 xl:grid-cols-2">
-              <HistoryCard
-                title="Recent Completions"
-                rows={details.recent_completions || []}
-                renderRow={(row) => (
-                  <>
-                    <span className="truncate">{row.challenge}</span>
-                    <span className="shrink-0 text-neutral-500">
-                      {row.stars} stars
-                    </span>
-                  </>
-                )}
-              />
-              <HistoryCard
-                title="Recent Purchases"
-                rows={details.recent_purchases || []}
-                renderRow={(row) => (
-                  <>
-                    <span className="truncate">{row.name}</span>
-                    <span className="shrink-0 text-neutral-500">
-                      {row.cost} XP
-                    </span>
-                  </>
-                )}
-              />
+              )}
             </div>
           </div>
         )}
@@ -354,26 +379,36 @@ const AdminUserDetailsDrawer = ({
   );
 };
 
-const MetricCard = ({ label, value }) => (
-  <div className="admin-subpanel p-3">
-    <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
+const StatBox = ({ icon: Icon, label, value, color }) => (
+  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center group hover:bg-white/[0.04] transition-colors">
+    <div className={`mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.03] ${color}`}>
+      <Icon size={14} />
+    </div>
+    <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-600 group-hover:text-neutral-400 transition-colors">
       {label}
     </div>
-    <div className="mt-1 text-xl font-semibold text-neutral-100">{value}</div>
+    <div className="text-lg font-bold text-neutral-100">{value}</div>
   </div>
 );
 
-const HistoryCard = ({ title, rows, renderRow }) => (
-  <div className="admin-panel p-4">
-    <h3 className="text-sm font-semibold text-neutral-100">{title}</h3>
-    <div className="mt-4 space-y-2">
+const CompactHistoryCard = ({ title, icon: Icon, rows, renderRow }) => (
+  <div className="space-y-3">
+    <div className="flex items-center gap-2 px-1">
+      <div className="h-6 w-6 rounded-md bg-white/5 flex items-center justify-center text-neutral-500">
+        <Icon size={14} />
+      </div>
+      <h3 className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">{title}</h3>
+    </div>
+    <div className="space-y-1.5">
       {rows.length === 0 ? (
-        <div className="text-sm text-neutral-500">No records yet.</div>
+        <div className="text-center py-6 border border-dashed border-white/5 rounded-xl">
+          <p className="text-[10px] text-neutral-600 uppercase tracking-widest">No Activity</p>
+        </div>
       ) : (
         rows.map((row, index) => (
           <div
-            key={`${title}-${index}`}
-            className="admin-subpanel flex items-center justify-between gap-3 p-3 text-sm text-neutral-300"
+            key={index}
+            className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.01] p-3 text-xs transition-colors hover:bg-white/[0.03]"
           >
             {renderRow(row)}
           </div>
@@ -381,15 +416,6 @@ const HistoryCard = ({ title, rows, renderRow }) => (
       )}
     </div>
   </div>
-);
-
-const InputRow = ({ value, onChange, placeholder }) => (
-  <input
-    value={value}
-    onChange={(e) => onChange(e.target.value)}
-    placeholder={placeholder}
-    className="admin-control h-10 w-full rounded-md px-3 text-sm text-white outline-none"
-  />
 );
 
 export default AdminUserDetailsDrawer;
