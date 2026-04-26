@@ -62,8 +62,14 @@ const useChatStore = create((set, get) => ({
     const wsUrl = `${WS_URL}/${roomName}`;
     const socket = new WebSocket(wsUrl);
 
-    socket.onopen = () => {
+    socket.onopen = async () => {
       set({ isConnected: true, error: null });
+      
+      // Auto-load ALL history after connection
+      // This will load older messages beyond the initial 50
+      setTimeout(() => {
+        get().autoLoadAllHistory();
+      }, 500);
     };
 
     socket.onmessage = (event) => {
@@ -155,10 +161,22 @@ const useChatStore = create((set, get) => ({
             }),
           }));
         } else if (data.type === "history") {
-          set({ 
-            messages: data.messages, 
-            lastTimestamp: data.last_timestamp,
-            hasMore: data.last_timestamp !== null 
+          // Don't replace messages - prepend history to existing messages
+          // This preserves messages from previous connections
+          set((state) => {
+            // Filter out duplicates from history
+            const existingTimestamps = new Set(
+              state.messages.map(msg => msg.timestamp)
+            );
+            const newMessages = data.messages.filter(
+              msg => !existingTimestamps.has(msg.timestamp)
+            );
+            
+            return { 
+              messages: [...newMessages, ...state.messages],
+              lastTimestamp: data.last_timestamp,
+              hasMore: data.last_timestamp !== null
+            };
           });
         } else if (data.type === "presence") {
           set({ onlineCount: data.count });
@@ -274,6 +292,59 @@ const useChatStore = create((set, get) => ({
     } catch (err) {
       console.error("Failed to load more messages", err);
       set({ isLoadingMore: false });
+    }
+  },
+
+  // Auto-load ALL history from DynamoDB
+  autoLoadAllHistory: async () => {
+    const { currentRoom, messages } = get();
+    if (!currentRoom) return;
+
+    try {
+      const { default: api } = await import("../services/api");
+      let allMessages = [];
+      let lastTimestamp = null;
+      let hasMore = true;
+      let pageCount = 0;
+      const maxPages = 10; // Prevent infinite loading (10 pages * 50 = 500 messages)
+
+      while (hasMore && pageCount < maxPages) {
+        const url = lastTimestamp
+          ? `/chat/history/${currentRoom}?limit=50&last_timestamp=${lastTimestamp}`
+          : `/chat/history/${currentRoom}?limit=50`;
+        
+        const response = await api.get(url);
+        const data = response.data;
+        
+        allMessages = [...data.messages, ...allMessages];
+        lastTimestamp = data.last_timestamp;
+        hasMore = data.has_more;
+        pageCount++;
+      }
+
+      // Merge with existing messages, avoiding duplicates
+      if (allMessages.length > 0) {
+        set((state) => {
+          const existingTimestamps = new Set(
+            state.messages.map(msg => msg.timestamp)
+          );
+          const newMessages = allMessages.filter(
+            msg => !existingTimestamps.has(msg.timestamp)
+          );
+          
+          if (newMessages.length > 0) {
+            console.log(`Loaded ${newMessages.length} old messages from history`);
+            return {
+              messages: [...newMessages, ...state.messages],
+              lastTimestamp: lastTimestamp,
+              hasMore: hasMore
+            };
+          }
+          return state;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to auto-load history", err);
     }
   },
   

@@ -16,6 +16,7 @@ ACHIEVEMENTS = [
         "category": "challenge",
         "xp_reward": 25,
         "order": 1,
+        "target_value": 1,  # First challenge completed
     },
     {
         "slug": "rising-coder",
@@ -25,6 +26,7 @@ ACHIEVEMENTS = [
         "category": "challenge",
         "xp_reward": 50,
         "order": 2,
+        "target_value": 5,  # Requires 5 challenges
     },
     {
         "slug": "challenge-veteran",
@@ -34,6 +36,7 @@ ACHIEVEMENTS = [
         "category": "challenge",
         "xp_reward": 100,
         "order": 3,
+        "target_value": 10,  # Requires 10 challenges
     },
     {
         "slug": "legend",
@@ -43,6 +46,7 @@ ACHIEVEMENTS = [
         "category": "challenge",
         "xp_reward": 250,
         "order": 4,
+        "target_value": 25,  # Requires 25 challenges
     },
     {
         "slug": "speed-demon",
@@ -52,6 +56,7 @@ ACHIEVEMENTS = [
         "category": "challenge",
         "xp_reward": 75,
         "order": 5,
+        "target_value": 1,  # One speed completion
     },
     {
         "slug": "perfectionist",
@@ -61,6 +66,7 @@ ACHIEVEMENTS = [
         "category": "challenge",
         "xp_reward": 50,
         "order": 6,
+        "target_value": 1,  # One 3-star completion
     },
     # Streak
     {
@@ -71,6 +77,7 @@ ACHIEVEMENTS = [
         "category": "streak",
         "xp_reward": 30,
         "order": 10,
+        "target_value": 3,  # Requires 3 consecutive days
     },
     {
         "slug": "streak-master",
@@ -80,6 +87,7 @@ ACHIEVEMENTS = [
         "category": "streak",
         "xp_reward": 100,
         "order": 11,
+        "target_value": 7,  # Requires 7 consecutive days
     },
     # Social
     {
@@ -90,6 +98,7 @@ ACHIEVEMENTS = [
         "category": "social",
         "xp_reward": 10,
         "order": 20,
+        "target_value": 1,  # First follow
     },
     {
         "slug": "networker",
@@ -99,6 +108,7 @@ ACHIEVEMENTS = [
         "category": "social",
         "xp_reward": 50,
         "order": 21,
+        "target_value": 10,  # Requires 10 follows
     },
 ]
 

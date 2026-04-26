@@ -34,36 +34,66 @@ class AchievementService:
         """
         Updates progress for a specific achievement.
         If current_value >= target_value, the achievement is unlocked.
+        
+        Validation:
+        - current_value must be > 0 (no progress with zero/negative values)
+        - current_value must meet or exceed target_value to unlock
+        - Already unlocked achievements are skipped
         """
         try:
             achievement = Achievement.objects.get(slug=slug)
             
+            # Validate current_value is meaningful
+            if current_value <= 0:
+                logger.debug(
+                    f"Ignoring invalid progress update for {slug}: "
+                    f"current_value={current_value} (must be > 0)"
+                )
+                return False
+            
             # Check if already unlocked
             if UserAchievement.objects.filter(user=user, achievement=achievement).exists():
+                logger.debug(f"Achievement {slug} already unlocked for user {user.username}")
                 return False
 
             with transaction.atomic():
                 # Update or create progress
-                progress, _ = UserAchievementProgress.objects.get_or_create(
+                progress, created = UserAchievementProgress.objects.get_or_create(
                     user=user, 
                     achievement=achievement
                 )
                 
                 # Only update if value is higher (prevent regressions if event order is weird)
                 if current_value > progress.current_value:
+                    old_value = progress.current_value
                     progress.current_value = current_value
                     progress.save()
+                    
+                    logger.info(
+                        f"Progress updated for {slug}: "
+                        f"user={user.username}, {old_value} → {current_value}/{achievement.target_value}"
+                    )
 
-                # Check for unlock
+                # Check for unlock - must meet or exceed target_value
                 if progress.current_value >= achievement.target_value:
+                    logger.info(
+                        f"🏆 Achievement UNLOCKED: {slug} for user {user.username}! "
+                        f"(value={progress.current_value}, target={achievement.target_value})"
+                    )
                     return AchievementService.grant_achievement(user, achievement)
+                else:
+                    logger.debug(
+                        f"Achievement {slug} not yet unlocked: "
+                        f"{progress.current_value}/{achievement.target_value} "
+                        f"({achievement.target_value - progress.current_value} more needed)"
+                    )
             
             return False
         except Achievement.DoesNotExist:
             logger.warning(f"Attempted to update progress for non-existent achievement: {slug}")
             return False
         except Exception as e:
-            logger.error(f"Error updating achievement progress: {e}", exc_info=True)
+            logger.error(f"Error updating achievement progress for {slug}: {e}", exc_info=True)
             return False
 
     @staticmethod
