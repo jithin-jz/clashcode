@@ -14,7 +14,7 @@ BLOCKED_MODULES = {
 # Dangerous functions that allow code execution or environment escape
 BLOCKED_FUNCTIONS = {
     "eval", "exec", "compile", "open", "getattr", "setattr", "delattr",
-    "help", "input", "globals", "locals", "vars", "breakpoint"
+    "help", "globals", "locals", "vars", "breakpoint"
 }
 
 class CodeSecurityValidator(ast.NodeVisitor):
