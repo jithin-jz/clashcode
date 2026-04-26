@@ -15,8 +15,8 @@ client = TestClient(app)
 
 
 @pytest.mark.asyncio
-@patch("main.verify_jwt")
-@patch("main.rate_limiter")
+@patch("api.websockets.verify_jwt")
+@patch("services.chat_service.rate_limiter")
 async def test_websocket_auth_failure(mock_limiter, mock_verify):
     mock_verify.return_value = None
 
@@ -30,10 +30,10 @@ async def test_websocket_auth_failure(mock_limiter, mock_verify):
 
 
 @pytest.mark.asyncio
-@patch("main.verify_jwt")
-@patch("main.rate_limiter")
-@patch("main.redis_client")
-@patch("main.dynamo_client")
+@patch("api.websockets.verify_jwt")
+@patch("services.chat_service.rate_limiter")
+@patch("services.chat_service.redis_client")
+@patch("services.chat_service.dynamo_client")
 async def test_websocket_success_flow(
     mock_dynamo, mock_redis, mock_limiter, mock_verify
 ):
@@ -65,7 +65,7 @@ async def test_websocket_success_flow(
     mock_redis.pubsub = MagicMock(return_value=mock_pubsub)
 
     # Mock Dynamo
-    mock_dynamo.get_messages = AsyncMock(return_value=[])
+    mock_dynamo.get_messages = AsyncMock(return_value={"items": [], "last_evaluated_key": None})
     mock_dynamo.save_message = AsyncMock()
 
     with client.websocket_connect(
@@ -83,10 +83,10 @@ async def test_websocket_success_flow(
 
 
 @pytest.mark.asyncio
-@patch("main.verify_jwt")
-@patch("main.rate_limiter")
-@patch("main.redis_client")
-@patch("main.dynamo_client")
+@patch("api.websockets.verify_jwt")
+@patch("services.chat_service.rate_limiter")
+@patch("services.chat_service.redis_client")
+@patch("services.chat_service.dynamo_client")
 async def test_websocket_delete_forbidden_stays_local(
     mock_dynamo, mock_redis, mock_limiter, mock_verify
 ):
@@ -94,9 +94,9 @@ async def test_websocket_delete_forbidden_stays_local(
     mock_limiter.check_connection_rate = AsyncMock(return_value=True)
     mock_limiter.check_message_rate = AsyncMock(return_value=True)
     mock_limiter.check_burst_rate = AsyncMock(return_value=True)
-    mock_dynamo.get_messages = AsyncMock(return_value=[])
+    mock_dynamo.get_messages = AsyncMock(return_value={"items": [], "last_evaluated_key": None})
     mock_dynamo.delete_message = AsyncMock(
-        return_value={"ok": False, "reason": "forbidden"}
+        return_value={"ok": False, "error": "You can only delete your own messages"}
     )
     mock_redis.publish = AsyncMock()
 

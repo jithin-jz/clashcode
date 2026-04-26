@@ -24,7 +24,7 @@ def test_history_no_token():
     assert response.json()["error"] == "Invalid token"
 
 
-@patch("main.verify_jwt")
+@patch("api.routes.verify_jwt")
 def test_history_invalid_token(mock_verify):
     mock_verify.return_value = None
     response = client.get(
@@ -35,20 +35,23 @@ def test_history_invalid_token(mock_verify):
 
 
 @pytest.mark.asyncio
-@patch("main.verify_jwt")
-@patch("main.dynamo_client")
+@patch("api.routes.verify_jwt")
+@patch("services.chat_service.dynamo_client")
 async def test_history_success_dynamo(mock_dynamo, mock_verify):
     # Setup mocks
     mock_verify.return_value = {"user_id": 1, "username": "testuser"}
     mock_dynamo.get_messages = AsyncMock(
-        return_value=[
-            {
-                "sender": "user1",
-                "content": "hello",
-                "timestamp": "2023-01-01T00:00:00",
-                "reactions": {},
-            }
-        ]
+        return_value={
+            "items": [
+                {
+                    "sender": "user1",
+                    "content": "hello",
+                    "timestamp": "2023-01-01T00:00:00",
+                    "reactions": {},
+                }
+            ],
+            "last_evaluated_key": None
+        }
     )
 
     # We use TestClient which is synchronous, but the endpoint is async.
@@ -63,11 +66,11 @@ async def test_history_success_dynamo(mock_dynamo, mock_verify):
 
 
 @pytest.mark.asyncio
-@patch("main.verify_jwt")
-@patch("main.dynamo_client")
+@patch("api.routes.verify_jwt")
+@patch("services.chat_service.dynamo_client")
 async def test_history_empty_dynamo(mock_dynamo, mock_verify):
     mock_verify.return_value = {"user_id": 1, "username": "testuser"}
-    mock_dynamo.get_messages = AsyncMock(return_value=[])
+    mock_dynamo.get_messages = AsyncMock(return_value={"items": [], "last_evaluated_key": None})
 
     response = client.get("/history/general", headers={"Authorization": "Bearer valid"})
 
