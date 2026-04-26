@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Settings, FileText, Code, ChevronRight, Info } from "lucide-react";
+import { X, Settings, FileText, Code, ChevronRight, Info } from "../../icons/lucide-react";
 import Editor from "@monaco-editor/react";
 import { Button } from "../../components/ui/button";
 import { challengesApi } from "../../services/challengesApi";
