@@ -32,21 +32,23 @@ const UserTableControls = ({
           <select
             value={userFilters?.role || ""}
             onChange={(e) => onUsersQueryChange?.({ role: e.target.value })}
+            style={{ colorScheme: "dark" }}
             className="admin-control h-9 w-full sm:w-auto rounded-md text-xs px-3"
           >
-            <option value="">All Roles</option>
-            <option value="user">Users</option>
-            <option value="staff">Staff</option>
-            <option value="superuser">Superusers</option>
+            <option value="" className="bg-[#0A0A0A] text-white">All Roles</option>
+            <option value="user" className="bg-[#0A0A0A] text-white">Users</option>
+            <option value="staff" className="bg-[#0A0A0A] text-white">Staff</option>
+            <option value="superuser" className="bg-[#0A0A0A] text-white">Superusers</option>
           </select>
           <select
             value={userFilters?.status || ""}
             onChange={(e) => onUsersQueryChange?.({ status: e.target.value })}
+            style={{ colorScheme: "dark" }}
             className="admin-control h-9 w-full sm:w-auto rounded-md text-xs px-3"
           >
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="blocked">Blocked</option>
+            <option value="" className="bg-[#0A0A0A] text-white">All Status</option>
+            <option value="active" className="bg-[#0A0A0A] text-white">Active</option>
+            <option value="blocked" className="bg-[#0A0A0A] text-white">Blocked</option>
           </select>
           <select
             value={String(pageSize)}
@@ -54,11 +56,12 @@ const UserTableControls = ({
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
+            style={{ colorScheme: "dark" }}
             className="admin-control h-9 w-full sm:w-auto rounded-md text-xs px-3"
           >
-            <option value="10">10 / page</option>
-            <option value="25">25 / page</option>
-            <option value="50">50 / page</option>
+            <option value="10" className="bg-[#0A0A0A] text-white">10 / page</option>
+            <option value="25" className="bg-[#0A0A0A] text-white">25 / page</option>
+            <option value="50" className="bg-[#0A0A0A] text-white">50 / page</option>
           </select>
         </div>
 
@@ -66,10 +69,11 @@ const UserTableControls = ({
           <select
             value={selectedBulkAction}
             onChange={(e) => setSelectedBulkAction(e.target.value)}
+            style={{ colorScheme: "dark" }}
             className="admin-control h-9 w-full rounded-md px-3 text-xs sm:w-auto"
           >
-            <option value="block">Bulk block</option>
-            <option value="unblock">Bulk unblock</option>
+            <option value="block" className="bg-[#0A0A0A] text-white">Bulk block</option>
+            <option value="unblock" className="bg-[#0A0A0A] text-white">Bulk unblock</option>
           </select>
           <Button
             variant="outline"

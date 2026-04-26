@@ -52,12 +52,13 @@ const StoreItemDialog = ({
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                style={{ colorScheme: "dark" }}
                 className="admin-control h-9 w-full rounded-md px-3 text-sm text-white focus:outline-none"
               >
-                <option value="THEME">Theme</option>
-                <option value="FONT">Font</option>
-                <option value="EFFECT">Effect</option>
-                <option value="VICTORY">Victory</option>
+                <option value="THEME" className="bg-[#0A0A0A] text-white">Theme</option>
+                <option value="FONT" className="bg-[#0A0A0A] text-white">Font</option>
+                <option value="EFFECT" className="bg-[#0A0A0A] text-white">Effect</option>
+                <option value="VICTORY" className="bg-[#0A0A0A] text-white">Victory</option>
               </select>
             </div>
           </div>

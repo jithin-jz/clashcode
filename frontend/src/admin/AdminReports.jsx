@@ -58,22 +58,24 @@ const AdminReports = () => {
           <select
             value={statusFilter}
             onChange={(e) => fetchReports({ status: e.target.value })}
+            style={{ colorScheme: "dark" }}
             className="admin-control h-9 rounded-md px-3 text-xs"
           >
-            <option value="">All Statuses</option>
-            <option value="OPEN">Open</option>
-            <option value="IN_REVIEW">In Review</option>
-            <option value="RESOLVED">Resolved</option>
+            <option value="" className="bg-[#0A0A0A] text-white">All Statuses</option>
+            <option value="OPEN" className="bg-[#0A0A0A] text-white">Open</option>
+            <option value="IN_REVIEW" className="bg-[#0A0A0A] text-white">In Review</option>
+            <option value="RESOLVED" className="bg-[#0A0A0A] text-white">Resolved</option>
           </select>
           <select
             value={priorityFilter}
             onChange={(e) => fetchReports({ priority: e.target.value })}
+            style={{ colorScheme: "dark" }}
             className="admin-control h-9 rounded-md px-3 text-xs"
           >
-            <option value="">All Priorities</option>
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
+            <option value="" className="bg-[#0A0A0A] text-white">All Priorities</option>
+            <option value="LOW" className="bg-[#0A0A0A] text-white">Low</option>
+            <option value="MEDIUM" className="bg-[#0A0A0A] text-white">Medium</option>
+            <option value="HIGH" className="bg-[#0A0A0A] text-white">High</option>
           </select>
           <Button
             variant="outline"

@@ -61,34 +61,37 @@ const AuditLogFilters = ({
       <select
         value={query.action || ""}
         onChange={(e) => fetchLogs({ action: e.target.value, page: 1 })}
+        style={{ colorScheme: "dark" }}
         className="admin-control h-9 w-full sm:w-auto rounded-md text-xs px-3"
       >
-        <option value="">All Actions</option>
-        <option value="TOGGLE_USER_BLOCK">Toggle User Block</option>
-        <option value="DELETE_USER">Delete User</option>
-        <option value="SEND_GLOBAL_NOTIFICATION">Broadcast</option>
+        <option value="" className="bg-[#0A0A0A] text-white">All Actions</option>
+        <option value="TOGGLE_USER_BLOCK" className="bg-[#0A0A0A] text-white">Toggle User Block</option>
+        <option value="DELETE_USER" className="bg-[#0A0A0A] text-white">Delete User</option>
+        <option value="SEND_GLOBAL_NOTIFICATION" className="bg-[#0A0A0A] text-white">Broadcast</option>
       </select>
       <select
         value={query.ordering || "-timestamp"}
         onChange={(e) => fetchLogs({ ordering: e.target.value, page: 1 })}
+        style={{ colorScheme: "dark" }}
         className="admin-control h-9 w-full sm:w-auto rounded-md text-xs px-3"
       >
-        <option value="-timestamp">Newest</option>
-        <option value="timestamp">Oldest</option>
-        <option value="action">Action A-Z</option>
-        <option value="-action">Action Z-A</option>
+        <option value="-timestamp" className="bg-[#0A0A0A] text-white">Newest</option>
+        <option value="timestamp" className="bg-[#0A0A0A] text-white">Oldest</option>
+        <option value="action" className="bg-[#0A0A0A] text-white">Action A-Z</option>
+        <option value="-action" className="bg-[#0A0A0A] text-white">Action Z-A</option>
       </select>
       <select
         value={String(query.page_size || 25)}
         onChange={(e) =>
           fetchLogs({ page_size: Number(e.target.value), page: 1 })
         }
+        style={{ colorScheme: "dark" }}
         className="admin-control h-9 w-full sm:w-auto rounded-md text-xs px-3"
       >
-        <option value="10">10 / page</option>
-        <option value="25">25 / page</option>
-        <option value="50">50 / page</option>
-        <option value="100">100 / page</option>
+        <option value="10" className="bg-[#0A0A0A] text-white">10 / page</option>
+        <option value="25" className="bg-[#0A0A0A] text-white">25 / page</option>
+        <option value="50" className="bg-[#0A0A0A] text-white">50 / page</option>
+        <option value="100" className="bg-[#0A0A0A] text-white">100 / page</option>
       </select>
     </div>
   );

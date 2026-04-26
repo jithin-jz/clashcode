@@ -27,11 +27,12 @@ const TaskPagination = ({
             setPageSize(Number(e.target.value));
             setPage(1);
           }}
+          style={{ colorScheme: "dark" }}
           className="admin-control h-8 rounded-md text-xs px-3"
         >
-          <option value="10">10 / page</option>
-          <option value="25">25 / page</option>
-          <option value="50">50 / page</option>
+          <option value="10" className="bg-[#0A0A0A] text-white">10 / page</option>
+          <option value="25" className="bg-[#0A0A0A] text-white">25 / page</option>
+          <option value="50" className="bg-[#0A0A0A] text-white">50 / page</option>
         </select>
       </div>
       
