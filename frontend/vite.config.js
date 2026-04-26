@@ -86,24 +86,24 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: "http://127.0.0.1",
+        target: "http://localhost",
         changeOrigin: true,
       },
       "/ai": {
-        target: "http://127.0.0.1",
+        target: "http://localhost",
         changeOrigin: true,
       },
       "/ws": {
-        target: "ws://127.0.0.1",
+        target: "ws://localhost",
         ws: true,
         changeOrigin: true,
       },
       "/chat": {
-        target: "http://127.0.0.1",
+        target: "http://localhost",
         changeOrigin: true,
       },
       "/media": {
-        target: "http://127.0.0.1",
+        target: "http://localhost",
         changeOrigin: true,
       },
     },
