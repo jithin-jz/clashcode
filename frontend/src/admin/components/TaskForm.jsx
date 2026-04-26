@@ -56,7 +56,8 @@ const TaskForm = ({ task, onSave, onCancel, tasksCount }) => {
   ];
 
   return (
-    <div className="admin-panel overflow-hidden border-white/5 bg-[#080808]/90 backdrop-blur-3xl shadow-2xl">
+    <div className="admin-panel max-w-5xl mx-auto overflow-hidden border-white/5 bg-[#080808]/90 backdrop-blur-3xl shadow-2xl">
+
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-white/5">
         <div className="space-y-1">
@@ -101,11 +102,13 @@ const TaskForm = ({ task, onSave, onCancel, tasksCount }) => {
         })}
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-8">
+      <form onSubmit={handleSubmit} className="p-5 space-y-6">
+
         {/* General Settings Tab */}
         {activeTab === "general" && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -189,7 +192,8 @@ const TaskForm = ({ task, onSave, onCancel, tasksCount }) => {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="admin-control h-[400px] w-full rounded-2xl px-4 py-4 text-sm text-neutral-300 font-mono bg-white/[0.02] border-white/10 hover:border-white/20 transition-all outline-none resize-none ds-scrollbar"
+                className="admin-control h-[300px] w-full rounded-2xl px-4 py-4 text-sm text-neutral-300 font-mono bg-white/[0.02] border-white/10 hover:border-white/20 transition-all outline-none resize-none ds-scrollbar"
+
                 placeholder="### Problem Statement\nDescribe the challenge here..."
                 required
               />
@@ -200,7 +204,8 @@ const TaskForm = ({ task, onSave, onCancel, tasksCount }) => {
         {/* Code Tab */}
         {activeTab === "code" && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[500px]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[400px]">
+
               <div className="flex flex-col space-y-3">
                 <div className="flex items-center justify-between px-1">
                     <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Initial Sandbox</label>
@@ -252,7 +257,8 @@ const TaskForm = ({ task, onSave, onCancel, tasksCount }) => {
         )}
 
         {/* Action Bar */}
-        <div className="flex items-center justify-between pt-8 border-t border-white/5">
+        <div className="flex items-center justify-between pt-6 border-t border-white/5">
+
           <div className="flex items-center gap-4">
             {activeTab !== "code" && (
                 <button
