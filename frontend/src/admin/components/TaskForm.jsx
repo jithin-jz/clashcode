@@ -56,10 +56,12 @@ const TaskForm = ({ task, onSave, onCancel, tasksCount }) => {
   ];
 
   return (
-    <div className="admin-panel max-w-5xl mx-auto overflow-hidden border-white/5 bg-[#080808]/90 backdrop-blur-3xl shadow-2xl">
+    <div className="admin-panel max-w-4xl mx-auto overflow-hidden border-white/5 bg-[#080808]/90 backdrop-blur-3xl shadow-2xl">
+
 
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-white/5">
+      <div className="flex items-center justify-between p-5 border-b border-white/5">
+
         <div className="space-y-1">
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
             {task ? "Edit Challenge" : "Forge New Challenge"}
@@ -80,7 +82,8 @@ const TaskForm = ({ task, onSave, onCancel, tasksCount }) => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex px-6 pt-4 border-b border-white/5 gap-1">
+      <div className="flex px-5 pt-2 border-b border-white/5 gap-1">
+
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -102,7 +105,8 @@ const TaskForm = ({ task, onSave, onCancel, tasksCount }) => {
         })}
       </div>
 
-      <form onSubmit={handleSubmit} className="p-5 space-y-6">
+      <form onSubmit={handleSubmit} className="p-5 space-y-5">
+
 
         {/* General Settings Tab */}
         {activeTab === "general" && (
@@ -192,7 +196,8 @@ const TaskForm = ({ task, onSave, onCancel, tasksCount }) => {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="admin-control h-[300px] w-full rounded-2xl px-4 py-4 text-sm text-neutral-300 font-mono bg-white/[0.02] border-white/10 hover:border-white/20 transition-all outline-none resize-none ds-scrollbar"
+                className="admin-control h-[250px] w-full rounded-2xl px-4 py-4 text-sm text-neutral-300 font-mono bg-white/[0.02] border-white/10 hover:border-white/20 transition-all outline-none resize-none ds-scrollbar"
+
 
                 placeholder="### Problem Statement\nDescribe the challenge here..."
                 required
@@ -203,8 +208,9 @@ const TaskForm = ({ task, onSave, onCancel, tasksCount }) => {
 
         {/* Code Tab */}
         {activeTab === "code" && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[400px]">
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-[350px]">
+
 
               <div className="flex flex-col space-y-3">
                 <div className="flex items-center justify-between px-1">
