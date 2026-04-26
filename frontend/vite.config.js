@@ -24,10 +24,12 @@ export default defineConfig({
     boneyardPlugin({
       routes: ["/login", "/home", "/profile", "/achievements", "/store"],
       debug: false,
+      skipInitial: true,
     }),
     sentryVitePlugin({
       org: "clashcode",
       project: "frontend",
+      telemetry: false,
     }),
   ],
   resolve: {
@@ -77,7 +79,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: true,
+    host: false,
     strictPort: false,
     hmr: {
       clientPort: 80,
