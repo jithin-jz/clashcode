@@ -28,7 +28,7 @@ class Command(BaseCommand):
             {
                 "name": "Nord",
                 "description": "Arctic-inspired clean and frosty theme.",
-                "cost": 100,
+                "cost": 150,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -39,7 +39,7 @@ class Command(BaseCommand):
             {
                 "name": "Monokai",
                 "description": "Vibrant and warm colors for high focus.",
-                "cost": 150,
+                "cost": 200,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -50,7 +50,7 @@ class Command(BaseCommand):
             {
                 "name": "Solarized Dark",
                 "description": "High-precision professional dark mode.",
-                "cost": 150,
+                "cost": 250,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -61,7 +61,7 @@ class Command(BaseCommand):
             {
                 "name": "Cyberpunk",
                 "description": "Futuristic neon pink and cyan aesthetics.",
-                "cost": 200,
+                "cost": 300,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -73,7 +73,7 @@ class Command(BaseCommand):
             {
                 "name": "Tokyo Night",
                 "description": "Clean theme inspired by Tokyo city lights.",
-                "cost": 200,
+                "cost": 350,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -84,7 +84,7 @@ class Command(BaseCommand):
             {
                 "name": "One Dark Pro",
                 "description": "Atom's signature dark and refined theme.",
-                "cost": 150,
+                "cost": 400,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -95,7 +95,7 @@ class Command(BaseCommand):
             {
                 "name": "Gruvbox Dark",
                 "description": "Retro groove scheme with warm earthy tones.",
-                "cost": 175,
+                "cost": 500,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
