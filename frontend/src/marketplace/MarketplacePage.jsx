@@ -28,10 +28,10 @@ import { useReferral } from "../hooks/useReferral";
 import ReferralSection from "../profile/components/ReferralSection";
 
 const CATEGORIES = [
-  { id: "THEME", label: "Themes", icon: Palette },
-  { id: "FONT", label: "Fonts", icon: Type },
-  { id: "EFFECT", label: "Effects", icon: Sparkles },
-  { id: "VICTORY", label: "Victory", icon: PartyPopper },
+  { id: "THEME", label: "Themes", icon: Palette, color: "text-indigo-500", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
+  { id: "FONT", label: "Fonts", icon: Type, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+  { id: "EFFECT", label: "Effects", icon: Sparkles, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+  { id: "VICTORY", label: "Victory", icon: PartyPopper, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
 ];
 
 const MarketplacePage = memo(() => {
@@ -173,18 +173,18 @@ const MarketplacePage = memo(() => {
                             }`}
                           >
                             <div
-                              className={`h-28 flex items-center justify-center border-b transition-colors relative shrink-0 ${
+                              className={`h-28 flex items-center justify-center border-b transition-all duration-500 relative shrink-0 ${
                                 isActive
                                   ? "bg-emerald-500/[0.03] border-emerald-500/10"
-                                  : "bg-black border-[#1a1a1a]"
+                                  : "bg-black border-[#1a1a1a] group-hover:bg-[#050505]"
                               }`}
                             >
                               <div
-                                className={
+                                className={`transition-all duration-500 transform group-hover:scale-110 ${
                                   isActive
                                     ? "text-emerald-500"
-                                    : "text-neutral-600 group-hover:text-neutral-400"
-                                }
+                                    : CATEGORIES.find(c => c.id === item.category)?.color || "text-neutral-600"
+                                }`}
                               >
                                 {renderIcon(item.icon_name)}
                               </div>
@@ -200,7 +200,11 @@ const MarketplacePage = memo(() => {
                               </div>
 
                               <Badge
-                                className={`absolute top-2 left-2 text-[7px] px-1 py-0.5 rounded-sm border font-bold uppercase tracking-[0.2em] font-mono ${isActive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-black/60 text-neutral-500 border-[#222]"}`}
+                                className={`absolute top-2 left-2 text-[7px] px-1.5 py-0.5 rounded-sm border font-bold uppercase tracking-[0.2em] font-mono transition-colors ${
+                                  isActive 
+                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                                    : `${CATEGORIES.find(c => c.id === item.category)?.bg} ${CATEGORIES.find(c => c.id === item.category)?.color} ${CATEGORIES.find(c => c.id === item.category)?.border}`
+                                }`}
                               >
                                 {item.category}
                               </Badge>
@@ -240,10 +244,10 @@ const MarketplacePage = memo(() => {
                                 </Button>
                               ) : (
                                 <Button
-                                  className={`w-full h-8 text-[10px] font-bold tracking-widest transition-all border rounded-md font-mono ${
+                                  className={`w-full h-8 text-[10px] font-bold tracking-widest transition-all border rounded-md font-mono shadow-sm ${
                                     canAfford
-                                      ? "bg-white text-black border-transparent hover:bg-neutral-200"
-                                      : "bg-[#0d0d0d] text-neutral-600 border-[#1a1a1a] cursor-not-allowed"
+                                      ? "bg-white text-black border-transparent hover:bg-neutral-200 active:scale-95"
+                                      : "bg-[#0d0d0d] text-neutral-400 border-[#1a1a1a] cursor-not-allowed opacity-80"
                                   }`}
                                   disabled={!canAfford || isMutatingThis}
                                   onClick={() => handleBuy(item)}
