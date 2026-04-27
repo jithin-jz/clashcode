@@ -289,7 +289,8 @@ const AdminUserDetailsDrawer = ({
                 </div>
               )}
 
-              {activeTab === "moderation" &&                 <div className="grid sm:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {activeTab === "moderation" && (
+                <div className="grid sm:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   {/* Admin Notes */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
@@ -363,10 +364,11 @@ const AdminUserDetailsDrawer = ({
                         >
                           {savingReport ? "..." : "File Report"}
                         </Button>
-                      </div>
                     </div>
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
             </div>
           </div>
         )}
