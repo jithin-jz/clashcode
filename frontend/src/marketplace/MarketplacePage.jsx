@@ -261,7 +261,7 @@ const MarketplacePage = memo(() => {
                                         className={
                                           canAfford
                                             ? "text-red-500 fill-red-500/20"
-                                            : "text-amber-500/70"
+                                            : "text-red-500/50"
                                         }
                                       />
                                       {item.cost.toLocaleString()}
