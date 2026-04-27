@@ -28,23 +28,7 @@ services:
 
 
   # ---------------- DATABASES ----------------
-  db:
-    image: postgres:15
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-clashcode_db}
-      POSTGRES_USER: ${POSTGRES_USER:-clashcode}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clashcode} -d ${POSTGRES_DB:-clashcode_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    networks:
-      - default
+
 
   redis:
     image: redis:7-alpine
@@ -84,18 +68,16 @@ services:
     volumes:
       - ./core:/app
     environment:
-      DB_HOST: db
-      DB_NAME: ${POSTGRES_DB:-clashcode_db}
-      DB_USER: ${POSTGRES_USER:-clashcode}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST:?Set DB_HOST}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      DB_PORT: ${DB_PORT:-6543}
       REDIS_URL: redis://redis:6379/0
       EXECUTOR_URL: http://executor:8011/execute
       INTERNAL_REQUIRE_SIGNATURE: ${INTERNAL_REQUIRE_SIGNATURE:-true}
       INTERNAL_SIGNING_SECRET: ${INTERNAL_SIGNING_SECRET:?Set INTERNAL_SIGNING_SECRET}
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
       executor:
@@ -172,11 +154,11 @@ services:
     command: celery -A project worker --loglevel=info -Q default,ai,background
     env_file: ./core/.env
     environment:
-      DB_HOST: db
-      DB_NAME: ${POSTGRES_DB:-clashcode_db}
-      DB_USER: ${POSTGRES_USER:-clashcode}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST:?Set DB_HOST}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      DB_PORT: ${DB_PORT:-6543}
       REDIS_URL: redis://redis:6379/0
       INTERNAL_REQUIRE_SIGNATURE: ${INTERNAL_REQUIRE_SIGNATURE:-true}
       INTERNAL_SIGNING_SECRET: ${INTERNAL_SIGNING_SECRET:?Set INTERNAL_SIGNING_SECRET}
@@ -194,11 +176,11 @@ services:
     command: celery -A project beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     env_file: ./core/.env
     environment:
-      DB_HOST: db
-      DB_NAME: ${POSTGRES_DB:-clashcode_db}
-      DB_USER: ${POSTGRES_USER:-clashcode}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST:?Set DB_HOST}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      DB_PORT: ${DB_PORT:-6543}
       REDIS_URL: redis://redis:6379/0
       INTERNAL_REQUIRE_SIGNATURE: ${INTERNAL_REQUIRE_SIGNATURE:-true}
       INTERNAL_SIGNING_SECRET: ${INTERNAL_SIGNING_SECRET:?Set INTERNAL_SIGNING_SECRET}
@@ -250,6 +232,5 @@ networks:
     name: clashcode_network
 
 volumes:
-  postgres_data:
   redis_data:
   dynamodb_data:
