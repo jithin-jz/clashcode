@@ -122,6 +122,42 @@ const LandingPage = () => {
               </Magnetic>
             </div>
 
+            {/* LIVE PULSE TICKER */}
+            <div className="mt-12 w-full max-w-lg mx-auto overflow-hidden relative">
+              <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-black to-transparent z-10" />
+              <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-black to-transparent z-10" />
+              <Motion.div
+                animate={{ x: [0, -1000] }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 40,
+                  ease: "linear",
+                }}
+                className="flex whitespace-nowrap gap-12 items-center"
+              >
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="flex gap-12 items-center">
+                    <span className="flex items-center gap-2 text-[10px] font-['Geist_Mono'] text-neutral-600 uppercase tracking-widest">
+                      <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                      jithin just completed Python Basics III
+                    </span>
+                    <span className="flex items-center gap-2 text-[10px] font-['Geist_Mono'] text-neutral-600 uppercase tracking-widest">
+                      <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
+                      Global XP Earned: 142,850
+                    </span>
+                    <span className="flex items-center gap-2 text-[10px] font-['Geist_Mono'] text-neutral-600 uppercase tracking-widest">
+                      <span className="w-1 h-1 rounded-full bg-purple-500 animate-pulse" />
+                      New Challenge: Async IO Mastery
+                    </span>
+                    <span className="flex items-center gap-2 text-[10px] font-['Geist_Mono'] text-neutral-600 uppercase tracking-widest">
+                      <span className="w-1 h-1 rounded-full bg-orange-500 animate-pulse" />
+                      User_42 unlocked level 12
+                    </span>
+                  </div>
+                ))}
+              </Motion.div>
+            </div>
+
             {/* Stats bar */}
             <div className="mx-auto mt-14 grid max-w-3xl grid-cols-1 sm:grid-cols-3 gap-4">
               {stats.map((item, i) => (
