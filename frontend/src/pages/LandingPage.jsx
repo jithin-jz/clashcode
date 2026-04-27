@@ -265,6 +265,96 @@ const LandingPage = () => {
             </Motion.div>
           </div>
         </section>
+
+        {/* FOOTER */}
+        <footer className="relative z-10 border-t border-white/[0.03] bg-black px-5 py-16 sm:px-8">
+          <div className="app-page-width mx-auto">
+            <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                    <Terminal size={18} className="text-black" />
+                  </div>
+                  <span className="text-xl font-bold text-white tracking-tighter">
+                    CLASHCODE
+                  </span>
+                </div>
+                <p className="text-sm text-neutral-500 leading-relaxed max-w-xs">
+                  The precision-built arena for developers who demand structured
+                  growth and verifiable expertise.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em] mb-6">
+                  Platform
+                </h4>
+                <ul className="space-y-4 text-[13px] text-neutral-500">
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    Learning Tracks
+                  </li>
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    Coding Challenges
+                  </li>
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    Marketplace
+                  </li>
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    Leaderboards
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em] mb-6">
+                  Company
+                </h4>
+                <ul className="space-y-4 text-[13px] text-neutral-500">
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    About Us
+                  </li>
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    Changelog
+                  </li>
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    Privacy Policy
+                  </li>
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    Terms of Service
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em] mb-6">
+                  Connect
+                </h4>
+                <ul className="space-y-4 text-[13px] text-neutral-500">
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    GitHub
+                  </li>
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    Discord Community
+                  </li>
+                  <li className="hover:text-white transition-colors cursor-pointer">
+                    X (Twitter)
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-20 pt-8 border-t border-white/[0.02] flex flex-col sm:flex-row justify-between items-center gap-4">
+              <p className="text-[10px] font-['Geist_Mono'] text-neutral-700 uppercase tracking-widest">
+                © 2026 CLASHCODE. ALL RIGHTS RESERVED.
+              </p>
+              <p className="text-[10px] font-['Geist_Mono'] text-neutral-700 uppercase tracking-widest flex items-center gap-2">
+                Built for Python Masters
+                <span className="w-1 h-1 rounded-full bg-neutral-800" />
+                v1.2.4
+              </p>
+            </div>
+          </div>
+        </footer>
       </div>
     </Skeleton>
   );
