@@ -17,7 +17,7 @@ class Command(BaseCommand):
             {
                 "name": "Dracula",
                 "description": "Classic dark theme with purple accents.",
-                "cost": 100,
+                "cost": 400,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -28,7 +28,7 @@ class Command(BaseCommand):
             {
                 "name": "Nord",
                 "description": "Arctic-inspired clean and frosty theme.",
-                "cost": 150,
+                "cost": 500,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -39,7 +39,7 @@ class Command(BaseCommand):
             {
                 "name": "Monokai",
                 "description": "Vibrant and warm colors for high focus.",
-                "cost": 200,
+                "cost": 700,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -50,7 +50,7 @@ class Command(BaseCommand):
             {
                 "name": "Solarized Dark",
                 "description": "High-precision professional dark mode.",
-                "cost": 250,
+                "cost": 800,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -61,7 +61,7 @@ class Command(BaseCommand):
             {
                 "name": "Cyberpunk",
                 "description": "Futuristic neon pink and cyan aesthetics.",
-                "cost": 300,
+                "cost": 900,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -69,11 +69,10 @@ class Command(BaseCommand):
                     "colors": {"bg": "#0d0d0d", "accent": "#ff007f"},
                 },
             },
-            # New themes
             {
                 "name": "Tokyo Night",
                 "description": "Clean theme inspired by Tokyo city lights.",
-                "cost": 350,
+                "cost": 1100,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -84,7 +83,7 @@ class Command(BaseCommand):
             {
                 "name": "One Dark Pro",
                 "description": "Atom's signature dark and refined theme.",
-                "cost": 400,
+                "cost": 1300,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -95,7 +94,7 @@ class Command(BaseCommand):
             {
                 "name": "Gruvbox Dark",
                 "description": "Retro groove scheme with warm earthy tones.",
-                "cost": 500,
+                "cost": 1500,
                 "icon_name": "Palette",
                 "category": "THEME",
                 "item_data": {
@@ -107,7 +106,7 @@ class Command(BaseCommand):
             {
                 "name": "Fira Code",
                 "description": "Monospaced font with programming ligatures.",
-                "cost": 100,
+                "cost": 300,
                 "icon_name": "Type",
                 "category": "FONT",
                 "item_data": {"font_family": "Fira Code"},
@@ -115,7 +114,7 @@ class Command(BaseCommand):
             {
                 "name": "JetBrains Mono",
                 "description": "A typeface made for developers.",
-                "cost": 110,
+                "cost": 400,
                 "icon_name": "Type",
                 "category": "FONT",
                 "item_data": {"font_family": "JetBrains Mono"},
@@ -123,7 +122,7 @@ class Command(BaseCommand):
             {
                 "name": "Comic Code",
                 "description": "Comic Sans... but for coding. A fun twist!",
-                "cost": 200,
+                "cost": 600,
                 "icon_name": "Type",
                 "category": "FONT",
                 "item_data": {"font_family": "Comic Neue"},
@@ -131,16 +130,15 @@ class Command(BaseCommand):
             {
                 "name": "Cascadia Code",
                 "description": "Microsoft's modern monospaced font.",
-                "cost": 120,
+                "cost": 800,
                 "icon_name": "Type",
                 "category": "FONT",
                 "item_data": {"font_family": "Cascadia Code"},
             },
-            # New fonts
             {
                 "name": "Source Code Pro",
                 "description": "Adobe's clean monospaced font for code.",
-                "cost": 140,
+                "cost": 900,
                 "icon_name": "Type",
                 "category": "FONT",
                 "item_data": {"font_family": "Source Code Pro"},
@@ -148,7 +146,7 @@ class Command(BaseCommand):
             {
                 "name": "Victor Mono",
                 "description": "Elegant cursive italics for a unique look.",
-                "cost": 250,
+                "cost": 1000,
                 "icon_name": "Type",
                 "category": "FONT",
                 "item_data": {"font_family": "Victor Mono"},
@@ -156,7 +154,7 @@ class Command(BaseCommand):
             {
                 "name": "IBM Plex Mono",
                 "description": "IBM's corporate monospace with personality.",
-                "cost": 180,
+                "cost": 1100,
                 "icon_name": "Type",
                 "category": "FONT",
                 "item_data": {"font_family": "IBM Plex Mono"},
@@ -164,7 +162,7 @@ class Command(BaseCommand):
             {
                 "name": "Roboto Mono",
                 "description": "Google's geometric monospaced typeface.",
-                "cost": 160,
+                "cost": 1200,
                 "icon_name": "Type",
                 "category": "FONT",
                 "item_data": {"font_family": "Roboto Mono"},
@@ -173,7 +171,7 @@ class Command(BaseCommand):
             {
                 "name": "Sparkle Trail",
                 "description": "Leave a trail of sparkles as you type.",
-                "cost": 100,
+                "cost": 500,
                 "icon_name": "Sparkles",
                 "category": "EFFECT",
                 "item_data": {"effect_key": "sparkle"},
@@ -181,7 +179,7 @@ class Command(BaseCommand):
             {
                 "name": "Rainbow Trail",
                 "description": "A colorful rainbow follows your cursor.",
-                "cost": 150,
+                "cost": 800,
                 "icon_name": "Rainbow",
                 "category": "EFFECT",
                 "item_data": {"effect_key": "rainbow"},
@@ -189,16 +187,15 @@ class Command(BaseCommand):
             {
                 "name": "Matrix Rain",
                 "description": "Digital rain effect while coding.",
-                "cost": 190,
+                "cost": 1200,
                 "icon_name": "Binary",
                 "category": "EFFECT",
                 "item_data": {"effect_key": "matrix"},
             },
-            # New effects
             {
                 "name": "Neon Glow",
                 "description": "Your cursor glows with neon light.",
-                "cost": 125,
+                "cost": 1600,
                 "icon_name": "Lightbulb",
                 "category": "EFFECT",
                 "item_data": {"effect_key": "neon"},
@@ -206,7 +203,7 @@ class Command(BaseCommand):
             {
                 "name": "Fire Trail",
                 "description": "Leave blazing flames behind your cursor.",
-                "cost": 200,
+                "cost": 2000,
                 "icon_name": "Flame",
                 "category": "EFFECT",
                 "item_data": {"effect_key": "fire"},
@@ -214,7 +211,7 @@ class Command(BaseCommand):
             {
                 "name": "Snow Fall",
                 "description": "Gentle snowflakes follow your movements.",
-                "cost": 75,
+                "cost": 2400,
                 "icon_name": "Snowflake",
                 "category": "EFFECT",
                 "item_data": {"effect_key": "snow"},
@@ -222,7 +219,7 @@ class Command(BaseCommand):
             {
                 "name": "Electric Pulse",
                 "description": "Electric sparks dance around your cursor.",
-                "cost": 175,
+                "cost": 2800,
                 "icon_name": "Zap",
                 "category": "EFFECT",
                 "item_data": {"effect_key": "electric"},
@@ -230,7 +227,7 @@ class Command(BaseCommand):
             {
                 "name": "Bubble Pop",
                 "description": "Colorful bubbles trail behind your cursor.",
-                "cost": 50,
+                "cost": 3000,
                 "icon_name": "Circle",
                 "category": "EFFECT",
                 "item_data": {"effect_key": "bubble"},
@@ -239,7 +236,7 @@ class Command(BaseCommand):
             {
                 "name": "Confetti Burst",
                 "description": "Celebrate with colorful confetti on level complete!",
-                "cost": 250,
+                "cost": 1000,
                 "icon_name": "PartyPopper",
                 "category": "VICTORY",
                 "item_data": {"victory_key": "confetti"},
@@ -247,7 +244,7 @@ class Command(BaseCommand):
             {
                 "name": "Fireworks",
                 "description": "A spectacular fireworks display on success.",
-                "cost": 280,
+                "cost": 1500,
                 "icon_name": "Flame",
                 "category": "VICTORY",
                 "item_data": {"victory_key": "fireworks"},
@@ -255,16 +252,15 @@ class Command(BaseCommand):
             {
                 "name": "Level Up!",
                 "description": "Classic RPG level-up animation with sound.",
-                "cost": 310,
+                "cost": 2000,
                 "icon_name": "TrendingUp",
                 "category": "VICTORY",
                 "item_data": {"victory_key": "levelup"},
             },
-            # New victory animations
             {
                 "name": "Trophy Spin",
                 "description": "A golden trophy spins triumphantly.",
-                "cost": 475,
+                "cost": 2500,
                 "icon_name": "Trophy",
                 "category": "VICTORY",
                 "item_data": {"victory_key": "trophy"},
@@ -272,7 +268,7 @@ class Command(BaseCommand):
             {
                 "name": "Star Explosion",
                 "description": "Stars burst across the screen in celebration.",
-                "cost": 350,
+                "cost": 3000,
                 "icon_name": "Star",
                 "category": "VICTORY",
                 "item_data": {"victory_key": "stars"},
@@ -280,7 +276,7 @@ class Command(BaseCommand):
             {
                 "name": "Crown Drop",
                 "description": "A royal crown descends upon completion.",
-                "cost": 500,
+                "cost": 3500,
                 "icon_name": "Crown",
                 "category": "VICTORY",
                 "item_data": {"victory_key": "crown"},
@@ -288,7 +284,7 @@ class Command(BaseCommand):
             {
                 "name": "Lightning Strike",
                 "description": "Electric victory with dramatic lightning.",
-                "cost": 450,
+                "cost": 4000,
                 "icon_name": "Zap",
                 "category": "VICTORY",
                 "item_data": {"victory_key": "lightning"},
@@ -296,7 +292,7 @@ class Command(BaseCommand):
             {
                 "name": "Rocket Launch",
                 "description": "Blast off to success with a rocket animation.",
-                "cost": 400,
+                "cost": 5000,
                 "icon_name": "Rocket",
                 "category": "VICTORY",
                 "item_data": {"victory_key": "rocket"},
