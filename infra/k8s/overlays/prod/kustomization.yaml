@@ -25,3 +25,4 @@ labels:
   - pairs:
       environment: production
       project: clashcode
+    includeSelectors: true
