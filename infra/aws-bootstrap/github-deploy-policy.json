@@ -1,0 +1,35 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ECRAuth",
+      "Effect": "Allow",
+      "Action": ["ecr:GetAuthorizationToken"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ECRPushPull",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:CompleteLayerUpload",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:InitiateLayerUpload",
+        "ecr:PutImage",
+        "ecr:UploadLayerPart",
+        "ecr:BatchGetImage",
+        "ecr:DescribeImages",
+        "ecr:DescribeRepositories",
+        "ecr:ListImages",
+        "ecr:TagResource"
+      ],
+      "Resource": "arn:aws:ecr:ap-south-1:317451122305:repository/clashcode-*"
+    },
+    {
+      "Sid": "EKSDescribe",
+      "Effect": "Allow",
+      "Action": ["eks:DescribeCluster", "eks:ListClusters"],
+      "Resource": "arn:aws:eks:ap-south-1:317451122305:cluster/clashcode-eks"
+    }
+  ]
+}

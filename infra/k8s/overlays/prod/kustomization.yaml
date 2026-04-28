@@ -18,6 +18,9 @@ images:
   - name: analytics
     newName: 317451122305.dkr.ecr.ap-south-1.amazonaws.com/clashcode-analytics
     newTag: prod
+  - name: executor
+    newName: 317451122305.dkr.ecr.ap-south-1.amazonaws.com/clashcode-executor
+    newTag: prod
 
 commonLabels:
   environment: production

@@ -34,13 +34,23 @@ resource "aws_ecr_repository" "analytics" {
   }
 }
 
+resource "aws_ecr_repository" "executor" {
+  name                 = "${var.project_name}-executor"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
 # Lifecycle policy to keep only last 10 images to save costs
 resource "aws_ecr_lifecycle_policy" "cleanup" {
   for_each = toset([
     aws_ecr_repository.core.name,
     aws_ecr_repository.chat.name,
     aws_ecr_repository.ai.name,
-    aws_ecr_repository.analytics.name
+    aws_ecr_repository.analytics.name,
+    aws_ecr_repository.executor.name,
   ])
 
   repository = each.value

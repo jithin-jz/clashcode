@@ -6,6 +6,7 @@ metadata:
     app: worker
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: worker
@@ -18,6 +19,9 @@ spec:
       - name: worker
         image: core:latest
         command: ["celery", "-A", "project", "worker", "--loglevel=info", "-Q", "default,ai,background"]
+        env:
+        - name: EXECUTOR_URL
+          value: "http://executor-service:8011/execute"
         envFrom:
         - secretRef:
             name: backend-secrets
@@ -37,6 +41,7 @@ metadata:
     app: beat
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: beat

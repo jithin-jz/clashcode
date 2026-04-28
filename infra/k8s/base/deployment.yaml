@@ -6,6 +6,7 @@ metadata:
     app: core
 spec:
   replicas: 2
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: core
@@ -19,6 +20,9 @@ spec:
         image: core:latest
         ports:
         - containerPort: 8000
+        env:
+        - name: EXECUTOR_URL
+          value: "http://executor-service:8011/execute"
         envFrom:
         - secretRef:
             name: backend-secrets
@@ -50,6 +54,7 @@ metadata:
     app: chat
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: chat
@@ -94,6 +99,7 @@ metadata:
     app: ai
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: ai
@@ -141,6 +147,7 @@ metadata:
     app: analytics
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: analytics

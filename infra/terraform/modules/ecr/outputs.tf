@@ -13,3 +13,7 @@ output "ai_repository_url" {
 output "analytics_repository_url" {
   value = aws_ecr_repository.analytics.repository_url
 }
+
+output "executor_repository_url" {
+  value = aws_ecr_repository.executor.repository_url
+}
