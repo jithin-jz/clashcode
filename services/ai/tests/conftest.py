@@ -12,6 +12,8 @@ os.environ["EMBEDDING_MODEL"] = "all-MiniLM-L6-v2"
 os.environ["CHROMA_SERVER_HOST"] = "localhost"
 os.environ["CHROMA_SERVER_HTTP_PORT"] = "8000"
 os.environ["CORS_ORIGINS"] = '["http://localhost:3000"]'
+os.environ["PINECONE_API_KEY"] = "test-pinecone-key"
+os.environ["PINECONE_INDEX_NAME"] = "test-index"
 os.environ["INTERNAL_REQUIRE_SIGNATURE"] = "false"
 os.environ["INTERNAL_SIGNING_SECRET"] = ""  # Ensure it's empty
 

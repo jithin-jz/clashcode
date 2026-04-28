@@ -85,16 +85,18 @@ async def test_websocket_success_flow(mock_dynamo, mock_redis, mock_limiter, moc
 @pytest.mark.asyncio
 @patch("api.websockets.verify_jwt")
 @patch("services.chat_service.rate_limiter")
+@patch("core.managers.redis_client")
 @patch("services.chat_service.redis_client")
 @patch("services.chat_service.dynamo_client")
-async def test_websocket_delete_forbidden_stays_local(mock_dynamo, mock_redis, mock_limiter, mock_verify):
+async def test_websocket_delete_forbidden_stays_local(mock_dynamo, mock_svc_redis, mock_mgr_redis, mock_limiter, mock_verify):
     mock_verify.return_value = {"user_id": 1, "username": "testuser"}
     mock_limiter.check_connection_rate = AsyncMock(return_value=True)
     mock_limiter.check_message_rate = AsyncMock(return_value=True)
     mock_limiter.check_burst_rate = AsyncMock(return_value=True)
     mock_dynamo.get_messages = AsyncMock(return_value={"items": [], "last_evaluated_key": None})
     mock_dynamo.delete_message = AsyncMock(return_value={"ok": False, "error": "You can only delete your own messages"})
-    mock_redis.publish = AsyncMock()
+    mock_svc_redis.publish = AsyncMock()
+    mock_mgr_redis.publish = AsyncMock()
 
     mock_pubsub = MagicMock()
     mock_pubsub.subscribe = AsyncMock()
@@ -105,7 +107,8 @@ async def test_websocket_delete_forbidden_stays_local(mock_dynamo, mock_redis, m
             yield None
 
     mock_pubsub.listen.return_value = empty_gen()
-    mock_redis.pubsub = MagicMock(return_value=mock_pubsub)
+    mock_svc_redis.pubsub = MagicMock(return_value=mock_pubsub)
+    mock_mgr_redis.pubsub = MagicMock(return_value=mock_pubsub)
 
     with client.websocket_connect(
         "/ws/chat/global",
