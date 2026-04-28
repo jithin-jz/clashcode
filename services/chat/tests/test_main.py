@@ -15,13 +15,13 @@ client = TestClient(app)
 
 
 def test_health_check():
-    response = client.get("/")
+    response = client.get("/chat/")
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "service": "chat"}
 
 
 def test_history_no_token():
-    response = client.get("/history/general")
+    response = client.get("/chat/history/general")
     assert response.status_code == 401
     assert response.json()["error"] == "Invalid token"
 
@@ -29,7 +29,7 @@ def test_history_no_token():
 @patch("api.routes.verify_jwt")
 def test_history_invalid_token(mock_verify):
     mock_verify.return_value = None
-    response = client.get("/history/general", headers={"Authorization": "Bearer invalid"})
+    response = client.get("/chat/history/general", headers={"Authorization": "Bearer invalid"})
     assert response.status_code == 401
     assert response.json()["error"] == "Invalid token"
 
@@ -56,7 +56,7 @@ async def test_history_success_dynamo(mock_dynamo, mock_verify):
 
     # We use TestClient which is synchronous, but the endpoint is async.
     # TestClient handles async endpoints internally by running them in an event loop.
-    response = client.get("/history/general", headers={"Authorization": "Bearer valid"})
+    response = client.get("/chat/history/general", headers={"Authorization": "Bearer valid"})
 
     assert response.status_code == 200
     data = response.json()
@@ -72,7 +72,7 @@ async def test_history_empty_dynamo(mock_dynamo, mock_verify):
     mock_verify.return_value = {"user_id": 1, "username": "testuser"}
     mock_dynamo.get_messages = AsyncMock(return_value={"items": [], "last_evaluated_key": None})
 
-    response = client.get("/history/general", headers={"Authorization": "Bearer valid"})
+    response = client.get("/chat/history/general", headers={"Authorization": "Bearer valid"})
 
     assert response.status_code == 200
     data = response.json()
