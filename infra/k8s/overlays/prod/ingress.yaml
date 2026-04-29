@@ -28,6 +28,13 @@ spec:
                 name: chat-service
                 port:
                   number: 8001
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: chat-service
+                port:
+                  number: 8001
           - path: /ai
             pathType: Prefix
             backend:
@@ -35,6 +42,20 @@ spec:
                 name: ai-service
                 port:
                   number: 8002
+          - path: /media
+            pathType: Prefix
+            backend:
+              service:
+                name: core-service
+                port:
+                  number: 8000
+          - path: /static
+            pathType: Prefix
+            backend:
+              service:
+                name: core-service
+                port:
+                  number: 8000
           - path: /
             pathType: Prefix
             backend:
