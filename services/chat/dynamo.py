@@ -7,6 +7,8 @@ import aioboto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
+logger = logging.getLogger(__name__)
+
 # Credentials
 DYNAMODB_URL = os.getenv("DYNAMODB_URL")  # Defaults to None for real AWS
 REGION_NAME = os.getenv("AWS_REGION", "ap-south-1")
@@ -23,8 +25,6 @@ if not DYNAMODB_URL:
         os.environ.pop("AWS_ACCESS_KEY_ID", None)
     if os.environ.get("AWS_SECRET_ACCESS_KEY"):
         os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
-
-logger = logging.getLogger(__name__)
 
 
 class DynamoClient:
