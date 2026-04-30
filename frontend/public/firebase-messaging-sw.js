@@ -50,12 +50,36 @@ if (messaging) {
     const notificationOptions = {
       body: body,
       icon: absoluteIcon,
-      badge: absoluteIcon, // small icon in status bar on Android
+      badge: absoluteIcon,
       data: data,
-      tag: "clashcode-notif", // Collapses rapid notifications
-      renotify: true, // Vibrate/sound again even if tag is same
+      tag: "clashcode-notif",
+      renotify: true,
+      vibrate: [200, 100, 200], // Haptic feedback pattern
     };
 
     self.registration.showNotification(title, notificationOptions);
   });
 }
+
+// Handle notification click — focus or open the app
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  const targetUrl = data.url || "/home";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      // If a window is already open, focus it and post a message to play sound
+      for (const client of clients) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          client.postMessage({ type: "PLAY_NOTIFICATION_SOUND" });
+          return client.focus();
+        }
+      }
+      // Otherwise open a new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    }),
+  );
+});

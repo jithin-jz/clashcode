@@ -3,6 +3,7 @@ import { notificationsAPI } from "../services/api";
 import { notify } from "../services/notification";
 import { buildWebSocketUrl } from "../utils/websocketUrl";
 import { isBoneyard } from "../utils/isBoneyard";
+import { playNotificationSound } from "../utils/playNotificationSound";
 
 /**
  * Centralized notification management.
@@ -64,6 +65,8 @@ const useNotificationStore = create((set, get) => ({
         if (now - time > 10000) recent.delete(k);
       }
     }
+
+    playNotificationSound();
 
     notify.info(title || "New Notification", {
       description: body,

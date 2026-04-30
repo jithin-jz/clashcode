@@ -2,6 +2,7 @@ import { useCallback, useMemo, useEffect } from "react";
 import useNotificationStore from "../stores/useNotificationStore";
 import { notify } from "../services/notification";
 import { notificationsAPI } from "../services/api";
+import { playNotificationSound } from "../utils/playNotificationSound";
 
 /**
  * Hook to manage Firebase Cloud Messaging (FCM) notifications.
@@ -107,6 +108,20 @@ export const useFCM = (userId) => {
       initFCM();
     }
   }, [userId, initFCM]);
+
+  // Listen for messages from service worker (background notification clicks)
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    const onSwMessage = (event) => {
+      if (event.data?.type === "PLAY_NOTIFICATION_SOUND") {
+        playNotificationSound();
+      }
+    };
+
+    navigator.serviceWorker.addEventListener("message", onSwMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onSwMessage);
+  }, []);
 
   return useMemo(
     () => ({ initFCM, requestPermission, registerFCM }),
