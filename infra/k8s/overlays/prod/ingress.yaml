@@ -57,6 +57,13 @@ spec:
                 name: core-service
                 port:
                   number: 8000
+          - path: /chat
+            pathType: Prefix
+            backend:
+              service:
+                name: chat-service
+                port:
+                  number: 8001
           - path: /
             pathType: Prefix
             backend:
