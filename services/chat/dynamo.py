@@ -14,12 +14,15 @@ ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID", "dummy")
 SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "dummy")
 TABLE_NAME = os.getenv("DYNAMODB_TABLE", "ChatMessages")
 
-# CRITICAL: If credentials are "dummy", unset them from the environment 
-# to prevent the AWS SDK from trying to use them instead of the IAM Role (IRSA).
-if ACCESS_KEY == "dummy":
-    os.environ.pop("AWS_ACCESS_KEY_ID", None)
-if SECRET_KEY == "dummy":
-    os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
+# CRITICAL: In production (no DYNAMODB_URL), we MUST use IAM Roles (IRSA).
+# The presence of AWS_ACCESS_KEY_ID in the environment overrides IRSA.
+# We clear them to force the SDK to use the pod's identity.
+if not DYNAMODB_URL:
+    if os.environ.get("AWS_ACCESS_KEY_ID"):
+        logger.info("Clearing AWS_ACCESS_KEY_ID to enable IRSA")
+        os.environ.pop("AWS_ACCESS_KEY_ID", None)
+    if os.environ.get("AWS_SECRET_ACCESS_KEY"):
+        os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
 
 logger = logging.getLogger(__name__)
 
