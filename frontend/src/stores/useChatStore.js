@@ -154,13 +154,12 @@ const useChatStore = create(
                     : msg
                 )
               }));
-            }
             } else if (data.type === "history") {
-
               set((state) => {
                 const existingTimestamps = new Set(
                   state.messages.map((msg) => msg.timestamp),
                 );
+
                 const newMessages = data.messages.filter(
                   (msg) => !existingTimestamps.has(msg.timestamp),
                 );
