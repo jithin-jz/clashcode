@@ -114,6 +114,9 @@ async def test_websocket_delete_forbidden_stays_local(mock_dynamo, mock_svc_redi
         "/ws/chat/global",
         headers={"authorization": "Bearer valid"},
     ) as websocket:
+        # Consume the mandatory history message sent on connect
+        websocket.receive_json()
+
         websocket.send_text(
             json.dumps(
                 {
