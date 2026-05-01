@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class ChatService:
     @staticmethod
-    async def handle_connect(cls, ws: WebSocket, room: str, user_payload: Dict[str, Any]) -> bool:
+    async def handle_connect(ws: WebSocket, room: str, user_payload: Dict[str, Any]) -> bool:
         """Handles new WebSocket connection, sends history and joins presence."""
         user_id = int(user_payload["user_id"])
         username = user_payload.get("username", f"user-{user_id}")
@@ -66,7 +66,7 @@ class ChatService:
         return True
 
     @staticmethod
-    async def handle_disconnect(cls, ws: WebSocket, room: str, user_payload: Dict[str, Any]):
+    async def handle_disconnect(ws: WebSocket, room: str, user_payload: Dict[str, Any]):
         """Handles WebSocket disconnection and leaves presence."""
         user_id = int(user_payload["user_id"])
         username = user_payload.get("username", f"user-{user_id}")
@@ -84,7 +84,7 @@ class ChatService:
         await redis_client.publish(channel_key(room), leave.model_dump_json())
 
     @staticmethod
-    async def process_message(cls, room: str, user_payload: Dict[str, Any], incoming: IncomingMessage):
+    async def process_message(room: str, user_payload: Dict[str, Any], incoming: IncomingMessage):
         """Processes incoming chat messages based on action type."""
         user_id = int(user_payload["user_id"])
         username = user_payload.get("username", f"user-{user_id}")
