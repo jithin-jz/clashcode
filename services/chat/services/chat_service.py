@@ -30,20 +30,19 @@ class ChatService:
 
         # 1. Send History
         try:
-            result = await dynamo_client.get_messages(room, limit=50)
+            result = await dynamo_client.get_messages(room, limit=100)
             messages = result.get("items", [])
-            if messages:
-                history_data = [serialize_dynamo_message(room, msg) for msg in reversed(messages)]
-                last_key = result.get("last_evaluated_key")
-                await ws.send_text(
-                    json_dumps(
-                        {
-                            "type": "history",
-                            "messages": history_data,
-                            "last_timestamp": (last_key.get("timestamp") if last_key else None),
-                        }
-                    )
+            history_data = [serialize_dynamo_message(room, msg) for msg in reversed(messages)]
+            last_key = result.get("last_evaluated_key")
+            await ws.send_text(
+                json_dumps(
+                    {
+                        "type": "history",
+                        "messages": history_data,
+                        "last_timestamp": (last_key.get("timestamp") if last_key else None),
+                    }
                 )
+            )
         except Exception as e:
             logger.error(f"Failed to load history for room {room}: {e}")
 

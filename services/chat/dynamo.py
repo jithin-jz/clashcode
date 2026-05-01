@@ -9,54 +9,46 @@ from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
-# Credentials
-DYNAMODB_URL = os.getenv("DYNAMODB_URL")  # Defaults to None for real AWS
-REGION_NAME = os.getenv("AWS_REGION", "ap-south-1")
-ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID", "dummy")
-SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "dummy")
-TABLE_NAME = os.getenv("DYNAMODB_TABLE", "ChatMessages")
-
-# CRITICAL: In production (no DYNAMODB_URL), we MUST use IAM Roles (IRSA).
-# The presence of AWS_ACCESS_KEY_ID in the environment overrides IRSA.
-# We clear them to force the SDK to use the pod's identity.
-if not DYNAMODB_URL:
-    if os.environ.get("AWS_ACCESS_KEY_ID"):
-        logger.info("Clearing AWS_ACCESS_KEY_ID to enable IRSA")
-        os.environ.pop("AWS_ACCESS_KEY_ID", None)
-    if os.environ.get("AWS_SECRET_ACCESS_KEY"):
-        os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
-
-
 class DynamoClient:
     def __init__(self):
         self.session = aioboto3.Session()
-        self.endpoint_url = DYNAMODB_URL
+        self.endpoint_url = os.getenv("DYNAMODB_URL")
+        self.region_name = os.getenv("AWS_REGION", "ap-south-1")
+        self.table_name = os.getenv("DYNAMODB_TABLE", "ChatMessages")
         
-        # Build credentials only if they are real
-        self.creds = {"region_name": REGION_NAME}
+        self.creds = {"region_name": self.region_name}
         
         if self.endpoint_url:
             self.creds["endpoint_url"] = self.endpoint_url
-            
-        if ACCESS_KEY and ACCESS_KEY != "dummy":
-            self.creds["aws_access_key_id"] = ACCESS_KEY
-        if SECRET_KEY and SECRET_KEY != "dummy":
-            self.creds["aws_secret_access_key"] = SECRET_KEY
-            
-        if self.endpoint_url:
+            # For local dev, we might still want to use provided keys if they aren't "dummy"
+            access_key = os.getenv("AWS_ACCESS_KEY_ID")
+            secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+            if access_key and access_key != "dummy":
+                self.creds["aws_access_key_id"] = access_key
+            if secret_key and secret_key != "dummy":
+                self.creds["aws_secret_access_key"] = secret_key
             logger.info(f"DynamoDB connecting to local endpoint: {self.endpoint_url}")
-        elif "aws_access_key_id" in self.creds:
-            logger.info("DynamoDB connecting with provided credentials")
         else:
+            # In production, we explicitly do NOT pass aws_access_key_id if it's not provided
+            # to allow the SDK to fall back to IRSA/Instance Metadata.
+            # We also clear them from environment to be safe.
+            if os.environ.get("AWS_ACCESS_KEY_ID"):
+                logger.info("Clearing AWS_ACCESS_KEY_ID to enable IRSA")
+                os.environ.pop("AWS_ACCESS_KEY_ID", None)
+            if os.environ.get("AWS_SECRET_ACCESS_KEY"):
+                os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
             logger.info("DynamoDB connecting via IAM/Default chain")
+
 
     async def create_table_if_not_exists(self):
         try:
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
-                tables = [table.name async for table in dynamo.tables.all()]
-                if TABLE_NAME not in tables:
+                # Check if ChatMessages table exists
+                tables = await dynamo.tables.all()
+                table_names = [t.name async for t in tables]
+                if self.table_name not in table_names:
                     await dynamo.create_table(
-                        TableName=TABLE_NAME,
+                        TableName=self.table_name,
                         KeySchema=[
                             {"AttributeName": "room_id", "KeyType": "HASH"},
                             {"AttributeName": "timestamp", "KeyType": "RANGE"},
@@ -70,8 +62,8 @@ class DynamoClient:
                             "WriteCapacityUnits": 5,
                         },
                     )
-                    logger.info("Table %s created.", TABLE_NAME)
-                if "UserActivity" not in tables:
+                    logger.info("Table %s created.", self.table_name)
+                if "UserActivity" not in table_names:
                     await dynamo.create_table(
                         TableName="UserActivity",
                         KeySchema=[
@@ -110,7 +102,7 @@ class DynamoClient:
     ):
         try:
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
-                table = await dynamo.Table(TABLE_NAME)
+                table = await dynamo.Table(self.table_name)
                 item = {
                     "room_id": room_id,
                     "timestamp": timestamp or datetime.utcnow().isoformat(),
@@ -138,10 +130,10 @@ class DynamoClient:
         except Exception as e:
             logger.exception("Error saving message to DynamoDB: %s", e)
 
-    async def get_messages(self, room_id: str, limit: int = 50, last_timestamp: str | None = None):
+    async def get_messages(self, room_id: str, limit: int = 100, last_timestamp: str | None = None):
         try:
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
-                table = await dynamo.Table(TABLE_NAME)
+                table = await dynamo.Table(self.table_name)
                 query_kwargs = {
                     "KeyConditionExpression": Key("room_id").eq(room_id),
                     "ScanIndexForward": False,  # Get latest first
@@ -165,7 +157,7 @@ class DynamoClient:
     async def get_message(self, room_id: str, timestamp: str) -> dict[str, Any] | None:
         try:
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
-                table = await dynamo.Table(TABLE_NAME)
+                table = await dynamo.Table(self.table_name)
                 response = await table.get_item(Key={"room_id": room_id, "timestamp": timestamp})
                 return response.get("Item")
         except Exception as e:
@@ -181,7 +173,7 @@ class DynamoClient:
                 return {"ok": False, "reason": "forbidden"}
 
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
-                table = await dynamo.Table(TABLE_NAME)
+                table = await dynamo.Table(self.table_name)
                 await table.update_item(
                     Key={"room_id": room_id, "timestamp": timestamp},
                     UpdateExpression="SET content = :msg",
@@ -201,7 +193,7 @@ class DynamoClient:
                 return {"ok": False, "reason": "forbidden"}
 
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
-                table = await dynamo.Table(TABLE_NAME)
+                table = await dynamo.Table(self.table_name)
                 await table.delete_item(Key={"room_id": room_id, "timestamp": timestamp})
             return {"ok": True}
         except Exception as e:
@@ -230,7 +222,7 @@ class DynamoClient:
                 reactions[emoji] = users_for_emoji
 
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
-                table = await dynamo.Table(TABLE_NAME)
+                table = await dynamo.Table(self.table_name)
                 await table.update_item(
                     Key={"room_id": room_id, "timestamp": timestamp},
                     UpdateExpression="SET reactions = :r",
@@ -245,7 +237,7 @@ class DynamoClient:
         """Add a user to the read_by list of a message."""
         try:
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
-                table = await dynamo.Table(TABLE_NAME)
+                table = await dynamo.Table(self.table_name)
                 # Use ADD to insert into a string set (SS) to avoid duplicates efficiently
                 # But here we use a list for simplicity or a set if Boto3 allows easily.
                 # Actually, DynamoDB UpdateExpression "ADD" works for Sets.
@@ -264,7 +256,7 @@ class DynamoClient:
         """Search messages in a room containing the query string."""
         try:
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
-                table = await dynamo.Table(TABLE_NAME)
+                table = await dynamo.Table(self.table_name)
                 # Using scan with FilterExpression for simple substring search
                 # This is not highly efficient for large datasets but works for chat search
                 response = await table.query(

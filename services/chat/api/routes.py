@@ -18,7 +18,7 @@ async def health_check():
 async def get_message_history(
     request: Request,
     room: str,
-    limit: int = 50,
+    limit: int = 100,
     last_timestamp: str | None = None,
 ):
     """Get paginated message history for a room."""
