@@ -72,6 +72,7 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             "execute",
             "purchase_ai_assist",
             "ai_hint",
+            "ai_hint_stream",
             "ai_analyze",
             "task_status",
         ]
