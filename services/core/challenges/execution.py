@@ -13,7 +13,7 @@ class PistonExecutionService:
     The class name is kept for compatibility with existing imports.
     """
 
-    EXECUTOR_URL = getattr(settings, "EXECUTOR_URL", "http://executor:8011/execute")
+    EXECUTOR_URL = getattr(settings, "EXECUTOR_URL", "http://executor-service:8011/execute")
     MAX_CODE_BYTES = int(getattr(settings, "CODE_EXECUTION_MAX_BYTES", 64 * 1024))
     TIMEOUT_SECONDS = float(getattr(settings, "CODE_EXECUTION_TIMEOUT_SECONDS", 15))
 
