@@ -31,6 +31,7 @@ from ..tasks import (
     generate_ai_analysis_task,
     generate_ai_hint_task,
     submit_code_task,
+    _build_internal_headers,
 )
 from .base import (
     _analysis_cache_key,
