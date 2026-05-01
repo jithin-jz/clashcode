@@ -169,7 +169,11 @@ class DynamoClient:
             item = await self.get_message(room_id, timestamp)
             if not item:
                 return {"ok": False, "reason": "not_found"}
-            if str(item.get("user_id")) != str(user_id):
+            
+            db_user_id = item.get("user_id")
+            logger.info(f"Edit check: db_user_id={db_user_id} ({type(db_user_id)}), provided_user_id={user_id} ({type(user_id)})")
+            
+            if str(db_user_id) != str(user_id):
                 return {"ok": False, "reason": "forbidden"}
 
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
@@ -189,7 +193,11 @@ class DynamoClient:
             item = await self.get_message(room_id, timestamp)
             if not item:
                 return {"ok": False, "reason": "not_found"}
-            if str(item.get("user_id")) != str(user_id):
+            
+            db_user_id = item.get("user_id")
+            logger.info(f"Delete check: db_user_id={db_user_id} ({type(db_user_id)}), provided_user_id={user_id} ({type(user_id)})")
+            
+            if str(db_user_id) != str(user_id):
                 return {"ok": False, "reason": "forbidden"}
 
             async with self.session.resource("dynamodb", **self.creds) as dynamo:

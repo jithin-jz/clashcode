@@ -90,6 +90,8 @@ class ChatService:
         username = user_payload.get("username", f"user-{user_id}")
         avatar_url = user_payload.get("avatar_url")
 
+        logger.info(f"Processing action '{incoming.action}' from user {user_id} in room '{room}'")
+
         # Rate Limiting
         if not await rate_limiter.check_message_rate(user_id) or not await rate_limiter.check_burst_rate(user_id):
             return {"error": "Rate limited"}
@@ -167,6 +169,7 @@ class ChatService:
     @staticmethod
     async def _handle_react(room: str, user_id: int, username: str, incoming: IncomingMessage):
         result = await dynamo_client.toggle_reaction(room, incoming.target_timestamp, username, incoming.emoji)
+        logger.info(f"Reaction result for {incoming.target_timestamp}: {result.get('ok')}")
         if result.get("ok"):
             await redis_client.publish(
                 channel_key(room),

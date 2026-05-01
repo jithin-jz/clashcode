@@ -69,41 +69,9 @@ const MessageItem = ({
                 ? "bg-gradient-to-br from-emerald-600/30 via-emerald-500/20 to-emerald-600/25 border border-emerald-500/40 text-emerald-50 rounded-br-none"
                 : "bg-white/[0.05] backdrop-blur-md border border-white/[0.1] text-neutral-200 rounded-bl-none hover:bg-white/[0.07]"
             }
-            ${msg.message?.startsWith("IMAGE:") ? "p-2 !rounded-xl" : ""}
           `}
         >
-          {msg.message?.startsWith("IMAGE:") ? (
-            (() => {
-              const [imageUrl, ownerUsername] = msg.message
-                .replace("IMAGE:", "")
-                .split("|");
-              return (
-                <div className="space-y-2">
-                  <Link
-                    to={`/profile/${ownerUsername}`}
-                    className="block overflow-hidden rounded-lg border border-white/5 shadow-lg"
-                  >
-                    <img 
-                      src={imageUrl} 
-                      alt="" 
-                      className="w-full h-auto" 
-                    />
-                  </Link>
-                  <div className="flex items-center justify-between px-1 py-0.5">
-                    <p className="text-[8px] font-bold uppercase tracking-widest text-neutral-600">
-                      Transmission
-                    </p>
-                    <Link
-                      to={`/profile/${ownerUsername}`}
-                      className="text-[8px] font-bold uppercase tracking-widest text-emerald-500 hover:underline"
-                    >
-                      Verify
-                    </Link>
-                  </div>
-                </div>
-              );
-            })()
-          ) : editingMsgId === msg.timestamp ? (
+          {editingMsgId === msg.timestamp ? (
             <div className="flex flex-col gap-2 relative z-50">
               <input
                 type="text"
@@ -184,7 +152,7 @@ const MessageItem = ({
                   </button>
                 </>
               )}
-              {user?.is_admin && (
+              {user?.is_staff && (
                 <button
                   onClick={() => pinMessage(msg.timestamp, msg.message)}
                   className="text-neutral-400 hover:text-amber-400 transition-colors p-1"

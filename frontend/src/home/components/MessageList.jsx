@@ -187,11 +187,13 @@ const MessageList = ({
 
       {displayedMessages.map((msg, index) => {
         const isOwn =
+          msg.user_id === user?.id ||
           msg.user_id === user?.user_id ||
           (msg.user_id &&
-            user?.user_id &&
-            String(msg.user_id) === String(user.user_id)) ||
-          msg.username === user?.username;
+            (user?.id || user?.user_id) &&
+            String(msg.user_id) === String(user?.id || user?.user_id)) ||
+          msg.username === user?.username ||
+          msg.sender === user?.username;
         const metadata = userMetadata[msg.user_id] || {
           username: msg.username,
           avatar_url: msg.avatar_url,
