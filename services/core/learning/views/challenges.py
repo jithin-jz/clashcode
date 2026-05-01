@@ -316,7 +316,7 @@ class ChallengeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_402_PAYMENT_REQUIRED,
             )
 
-        ai_url = os.getenv("AI_SERVICE_URL", "http://ai:8002")
+        ai_url = os.getenv("AI_SERVICE_URL", "http://ai-service:8002")
         headers = _build_internal_headers("/hints/stream")
         payload = {
             "user_code": request.data.get("user_code", ""),

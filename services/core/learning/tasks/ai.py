@@ -27,7 +27,7 @@ def generate_ai_hint_task(
     hint_level: int,
     user_xp: int,
 ):
-    ai_url = os.getenv("AI_SERVICE_URL", "http://ai:8002")
+    ai_url = os.getenv("AI_SERVICE_URL", "http://ai-service:8002")
     payload = {
         "user_code": user_code or "",
         "challenge_slug": challenge_slug,
@@ -82,7 +82,7 @@ def generate_ai_hint_task(
 
 @shared_task(bind=True)
 def generate_ai_analysis_task(self, user_id: int, challenge_id: int, challenge_slug: str, user_code: str):
-    ai_url = os.getenv("AI_SERVICE_URL", "http://ai:8002")
+    ai_url = os.getenv("AI_SERVICE_URL", "http://ai-service:8002")
     payload = {
         "user_code": user_code or "",
         "challenge_slug": challenge_slug,
@@ -133,7 +133,7 @@ def prewarm_ai_rag_task():
     """
     Triggers the AI service to re-index all challenges from Core.
     """
-    ai_url = os.getenv("AI_SERVICE_URL", "http://ai:8002")
+    ai_url = os.getenv("AI_SERVICE_URL", "http://ai-service:8002")
     headers = _build_internal_headers("/index")
     logger.info("Triggering AI RAG pre-warming task...")
 
