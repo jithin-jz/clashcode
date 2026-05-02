@@ -177,7 +177,7 @@ class ChatService:
     async def _handle_react(room: str, user_id: int, username: str, incoming: IncomingMessage):
         if not incoming.emoji:
             return {"ok": False, "reason": "missing_emoji"}
-        
+
         result = await dynamo_client.toggle_reaction(
             room, incoming.target_timestamp, username, incoming.emoji
         )
@@ -238,12 +238,14 @@ class ChatService:
 
         result = await dynamo_client.mark_as_read(room, incoming.target_timestamp, username)
         if result.get("ok"):
+            actual_ts = result.get("actual_timestamp", incoming.target_timestamp)
             await redis_client.publish(
                 channel_key(room),
                 json_dumps(
                     {
                         "type": "chat_read",
-                        "timestamp": incoming.target_timestamp,
+                        "timestamp": actual_ts,
+                        "original_timestamp": incoming.target_timestamp,
                         "username": username,
                         "user_id": user_id,
                         "room": room,
@@ -268,6 +270,19 @@ class ChatService:
             avatar_url=avatar_url,
         )
 
+        # Save to DynamoDB
+        save_result = await dynamo_client.save_message(
+            room_id=room,
+            sender=username,
+            message=incoming.message,
+            user_id=user_id,
+            avatar_url=avatar_url,
+            timestamp=message.timestamp,
+        )
+        if save_result.get("ok") is False:
+            logger.warning("Skipping chat broadcast because save failed in %s: %s", room, save_result.get("reason"))
+            return save_result
+
         # Handle Mentions
         mentions = re.findall(r"@(\w+)", message.message)
         for mention in set(mentions):
@@ -283,16 +298,6 @@ class ChatService:
                     }
                 ),
             )
-
-        # Save to DynamoDB
-        await dynamo_client.save_message(
-            room_id=room,
-            sender=username,
-            message=incoming.message,
-            user_id=user_id,
-            avatar_url=avatar_url,
-            timestamp=message.timestamp,
-        )
 
         # Broadcast via Redis
         await redis_client.publish(channel_key(room), message.model_dump_json())

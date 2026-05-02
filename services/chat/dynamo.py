@@ -1,6 +1,7 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any
 
 import aioboto3
@@ -16,6 +17,7 @@ class DynamoClient:
         self.endpoint_url = os.getenv("DYNAMODB_URL")
         self.region_name = os.getenv("AWS_REGION", "ap-south-1")
         self.table_name = os.getenv("DYNAMODB_TABLE", "ChatMessages")
+        self._timestamp_key_type: str | None = None
 
         self.creds = {"region_name": self.region_name}
 
@@ -60,7 +62,7 @@ class DynamoClient:
                         ],
                         AttributeDefinitions=[
                             {"AttributeName": "room_id", "AttributeType": "S"},
-                            {"AttributeName": "timestamp", "AttributeType": "S"},
+                            {"AttributeName": "timestamp", "AttributeType": "N"},
                         ],
                         ProvisionedThroughput={
                             "ReadCapacityUnits": 5,
@@ -94,6 +96,74 @@ class DynamoClient:
         except Exception as e:
             logger.exception("Error creating table: %s", e)
 
+    async def _get_timestamp_key_type(self) -> str:
+        if self._timestamp_key_type:
+            return self._timestamp_key_type
+
+        try:
+            async with self.session.client("dynamodb", **self.creds) as client:
+                response = await client.describe_table(TableName=self.table_name)
+            attributes = {
+                item["AttributeName"]: item["AttributeType"]
+                for item in response.get("Table", {}).get("AttributeDefinitions", [])
+            }
+            self._timestamp_key_type = attributes.get("timestamp", "N")
+        except Exception as e:
+            logger.warning("Could not inspect DynamoDB timestamp key type, defaulting to numeric: %s", e)
+            self._timestamp_key_type = "N"
+
+        return self._timestamp_key_type
+
+    @staticmethod
+    def _timestamp_to_epoch_ms(timestamp: Any) -> Decimal:
+        if isinstance(timestamp, Decimal):
+            return timestamp
+        if isinstance(timestamp, int):
+            return Decimal(timestamp)
+        if isinstance(timestamp, float):
+            return Decimal(str(int(timestamp)))
+
+        raw = str(timestamp).strip()
+        try:
+            return Decimal(raw)
+        except Exception:
+            pass
+
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return Decimal(int(dt.timestamp() * 1000))
+
+    async def _db_timestamp(self, timestamp: Any) -> str | Decimal:
+        key_type = await self._get_timestamp_key_type()
+        if key_type == "N":
+            return self._timestamp_to_epoch_ms(timestamp)
+        return str(timestamp)
+
+    @staticmethod
+    def _format_db_timestamp(timestamp: Any) -> str:
+        if isinstance(timestamp, Decimal):
+            return str(int(timestamp)) if timestamp % 1 == 0 else str(timestamp)
+        return str(timestamp)
+
+    @staticmethod
+    def _timestamp_from_epoch(value: Decimal) -> str:
+        divisor = Decimal(1000) if abs(value) > Decimal("100000000000") else Decimal(1)
+        seconds = float(value / divisor)
+        return datetime.fromtimestamp(seconds, tz=timezone.utc).isoformat()
+
+    def _client_timestamp(self, item: dict[str, Any]) -> str | None:
+        timestamp = item.get("created_at") or item.get("iso_timestamp")
+        if timestamp:
+            return str(timestamp)
+
+        db_timestamp = item.get("timestamp")
+        if db_timestamp is None:
+            return None
+        if isinstance(db_timestamp, Decimal):
+            return self._timestamp_from_epoch(db_timestamp)
+        return str(db_timestamp)
+
     async def save_message(
         self,
         room_id: str,
@@ -105,12 +175,15 @@ class DynamoClient:
         reactions: dict | None = None,
         increment_activity: bool = True,
     ):
+        actual_timestamp = timestamp or datetime.now(timezone.utc).isoformat()
         try:
+            db_timestamp = await self._db_timestamp(actual_timestamp)
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
                 table = await dynamo.Table(self.table_name)
                 item = {
                     "room_id": room_id,
-                    "timestamp": timestamp or datetime.utcnow().isoformat(),
+                    "timestamp": db_timestamp,
+                    "created_at": actual_timestamp,
                     "sender": sender,
                     "content": message,
                 }
@@ -122,18 +195,26 @@ class DynamoClient:
                     item["reactions"] = reactions
 
                 await table.put_item(Item=item)
+        except Exception as e:
+            logger.exception("Error saving message to DynamoDB: %s", e)
+            return {"ok": False, "reason": "save_failed"}
 
-                # Log contribution if user_id provided
-                if user_id and increment_activity:
+        # Log contribution if user_id provided. Chat persistence should not fail
+        # just because the optional activity counter is unavailable.
+        if user_id and increment_activity:
+            try:
+                async with self.session.resource("dynamodb", **self.creds) as dynamo:
                     activity_table = await dynamo.Table("UserActivity")
-                    today = datetime.utcnow().strftime("%Y-%m-%d")
+                    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
                     await activity_table.update_item(
                         Key={"user_id": str(user_id), "date": today},
                         UpdateExpression="ADD contribution_count :inc",
                         ExpressionAttributeValues={":inc": 1},
                     )
-        except Exception as e:
-            logger.exception("Error saving message to DynamoDB: %s", e)
+            except Exception as e:
+                logger.warning("Could not update chat activity counter: %s", e)
+
+        return {"ok": True, "actual_timestamp": actual_timestamp}
 
     async def get_messages(self, room_id: str, limit: int = 100, last_timestamp: str | None = None):
         try:
@@ -147,13 +228,19 @@ class DynamoClient:
                 if last_timestamp:
                     query_kwargs["ExclusiveStartKey"] = {
                         "room_id": room_id,
-                        "timestamp": last_timestamp,
+                        "timestamp": await self._db_timestamp(last_timestamp),
                     }
 
                 response = await table.query(**query_kwargs)
+                last_key = response.get("LastEvaluatedKey")
+                if last_key and "timestamp" in last_key:
+                    last_key = {
+                        **last_key,
+                        "timestamp": self._format_db_timestamp(last_key["timestamp"]),
+                    }
                 return {
                     "items": response.get("Items", []),
-                    "last_evaluated_key": response.get("LastEvaluatedKey"),
+                    "last_evaluated_key": last_key,
                 }
         except Exception as e:
             logger.exception("Error fetching messages from DynamoDB: %s", e)
@@ -167,9 +254,13 @@ class DynamoClient:
         try:
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
                 table = await dynamo.Table(self.table_name)
+                db_timestamp = await self._db_timestamp(timestamp)
 
                 # 1. Try exact match first
-                response = await table.get_item(Key={"room_id": room_id, "timestamp": timestamp})
+                response = await table.get_item(
+                    Key={"room_id": room_id, "timestamp": db_timestamp},
+                    ConsistentRead=True,
+                )
                 item = response.get("Item")
                 if item:
                     return item
@@ -180,13 +271,17 @@ class DynamoClient:
 
                 # Simple normalization: try replacing Z with +00:00 or vice versa if applicable
                 alt_ts = None
-                if timestamp.endswith("Z"):
-                    alt_ts = timestamp.replace("Z", "+00:00")
-                elif "+00:00" in timestamp:
-                    alt_ts = timestamp.replace("+00:00", "Z")
+                raw_timestamp = str(timestamp)
+                if raw_timestamp.endswith("Z"):
+                    alt_ts = raw_timestamp.replace("Z", "+00:00")
+                elif "+00:00" in raw_timestamp:
+                    alt_ts = raw_timestamp.replace("+00:00", "Z")
 
                 if alt_ts:
-                    response = await table.get_item(Key={"room_id": room_id, "timestamp": alt_ts})
+                    response = await table.get_item(
+                        Key={"room_id": room_id, "timestamp": await self._db_timestamp(alt_ts)},
+                        ConsistentRead=True,
+                    )
                     item = response.get("Item")
                     if item:
                         logger.info(f"Found item with alternate timestamp: {alt_ts!r}")
@@ -203,8 +298,8 @@ class DynamoClient:
 
                 # Try prefix match (e.g. 2024-05-01T12:00:00.123 match 2024-05-01T12:00:00.123456)
                 for ex in existing:
-                    ex_ts = ex.get("timestamp", "")
-                    if ex_ts.startswith(timestamp) or timestamp.startswith(ex_ts):
+                    ex_ts = self._client_timestamp(ex) or self._format_db_timestamp(ex.get("timestamp", ""))
+                    if ex_ts.startswith(raw_timestamp) or raw_timestamp.startswith(ex_ts):
                         logger.info(f"Fuzzy match found: provided={timestamp!r}, db={ex_ts!r}")
                         return ex
 
@@ -221,7 +316,8 @@ class DynamoClient:
                 return {"ok": False, "reason": "not_found"}
 
             db_user_id = item.get("user_id")
-            db_timestamp = item.get("timestamp") # Use the actual DB timestamp for the update
+            db_timestamp = item.get("timestamp")
+            actual_timestamp = self._client_timestamp(item)
 
             if str(db_user_id) != str(user_id):
                 return {"ok": False, "reason": "forbidden"}
@@ -233,7 +329,7 @@ class DynamoClient:
                     UpdateExpression="SET content = :msg",
                     ExpressionAttributeValues={":msg": new_message},
                 )
-            return {"ok": True, "actual_timestamp": db_timestamp}
+            return {"ok": True, "actual_timestamp": actual_timestamp}
         except Exception as e:
             logger.exception("Error editing message in DynamoDB: %s", e)
             return {"ok": False, "reason": "error"}
@@ -246,6 +342,7 @@ class DynamoClient:
 
             db_user_id = item.get("user_id")
             db_timestamp = item.get("timestamp")
+            actual_timestamp = self._client_timestamp(item)
 
             if str(db_user_id) != str(user_id):
                 return {"ok": False, "reason": "forbidden"}
@@ -253,7 +350,7 @@ class DynamoClient:
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
                 table = await dynamo.Table(self.table_name)
                 await table.delete_item(Key={"room_id": room_id, "timestamp": db_timestamp})
-            return {"ok": True, "actual_timestamp": db_timestamp}
+            return {"ok": True, "actual_timestamp": actual_timestamp}
         except Exception as e:
             logger.exception("Error deleting message from DynamoDB: %s", e)
             return {"ok": False, "reason": "error"}
@@ -266,6 +363,7 @@ class DynamoClient:
                 return {"ok": False, "reason": "not_found", "reactions": {}}
 
             db_timestamp = item.get("timestamp")
+            actual_timestamp = self._client_timestamp(item)
             reactions = item.get("reactions", {})
 
             # Toggle: if user already reacted with this emoji, remove them; otherwise add
@@ -287,7 +385,7 @@ class DynamoClient:
                     UpdateExpression="SET reactions = :r",
                     ExpressionAttributeValues={":r": reactions},
                 )
-            return {"ok": True, "reactions": reactions, "actual_timestamp": db_timestamp}
+            return {"ok": True, "reactions": reactions, "actual_timestamp": actual_timestamp}
         except Exception as e:
             logger.exception("Error toggling reaction in DynamoDB: %s", e)
             return {"ok": False, "reason": "error", "reactions": {}}
@@ -301,6 +399,7 @@ class DynamoClient:
                 return {"ok": False, "reason": "not_found"}
 
             db_timestamp = item.get("timestamp")
+            actual_timestamp = self._client_timestamp(item)
 
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
                 table = await dynamo.Table(self.table_name)
@@ -317,13 +416,10 @@ class DynamoClient:
                         logger.warning(f"Attribute type mismatch for read_by, attempting fallback to SET for {db_timestamp}")
                         pass
                     raise ce
-            return {"ok": True, "actual_timestamp": db_timestamp}
+            return {"ok": True, "actual_timestamp": actual_timestamp}
         except Exception as e:
             logger.exception("Error marking message as read in DynamoDB: %s", e)
             return {"ok": False, "reason": "error"}
-
-
-
     async def search_messages(self, room_id: str, query: str, limit: int = 20):
         """Search messages in a room containing the query string."""
         try:

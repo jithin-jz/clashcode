@@ -12,6 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 from main import app
+from schemas import IncomingMessage
+from services.chat_service import ChatService
 
 client = TestClient(app)
 
@@ -66,7 +68,7 @@ async def test_websocket_success_flow(mock_dynamo, mock_redis, mock_limiter, moc
 
     # Mock Dynamo
     mock_dynamo.get_messages = AsyncMock(return_value={"items": [], "last_evaluated_key": None})
-    mock_dynamo.save_message = AsyncMock()
+    mock_dynamo.save_message = AsyncMock(return_value={"ok": True})
 
     with client.websocket_connect(
         "/ws/chat/global",
@@ -133,3 +135,22 @@ async def test_websocket_delete_forbidden_stays_local(
 
     assert response["type"] == "error"
     assert "delete your own messages" in response["message"]
+
+
+@pytest.mark.asyncio
+@patch("services.chat_service.redis_client")
+@patch("services.chat_service.dynamo_client")
+async def test_standard_message_save_failure_is_not_broadcast(mock_dynamo, mock_redis):
+    mock_dynamo.save_message = AsyncMock(return_value={"ok": False, "reason": "save_failed"})
+    mock_redis.publish = AsyncMock()
+
+    result = await ChatService._handle_standard_message(
+        room="global",
+        user_id=1,
+        username="testuser",
+        avatar_url=None,
+        incoming=IncomingMessage(message="hello world"),
+    )
+
+    assert result == {"ok": False, "reason": "save_failed"}
+    mock_redis.publish.assert_not_called()

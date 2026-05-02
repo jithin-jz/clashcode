@@ -31,7 +31,13 @@ const MessageList = ({
   useEffect(() => {
     if (!user || !messages.length) return;
     const lastMsg = messages[messages.length - 1];
-    const isOwn = lastMsg.user_id === user.user_id;
+    const currentUserId = user?.user_id || user?.id;
+    const isOwn =
+      (lastMsg.user_id &&
+        currentUserId &&
+        String(lastMsg.user_id) === String(currentUserId)) ||
+      lastMsg.username === user?.username ||
+      lastMsg.sender === user?.username;
     const alreadyRead = lastMsg.read_by?.includes(user.username);
 
     if (!isOwn && !alreadyRead) {

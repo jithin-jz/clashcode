@@ -22,15 +22,27 @@ const useChatStore = create(
       isLoadingMore: false,
       searchResults: [],
       isSearching: false,
+      hasHydratedHistory: false,
 
       // Actions
       connect: async (roomName = "global") => {
-        set({ shouldReconnect: true, currentRoom: roomName });
+        const state = get();
+        const roomChanged = state.currentRoom !== roomName;
+
+        set({
+          shouldReconnect: true,
+          currentRoom: roomName,
+          ...(roomChanged && {
+            messages: [],
+            lastTimestamp: null,
+            hasMore: true,
+            hasHydratedHistory: false,
+          }),
+        });
 
         if (isBoneyard()) return;
 
         // Prevent multiple connections to the SAME room
-        const state = get();
         if (state.socket) {
           if (
             state.socket.readyState === WebSocket.OPEN ||
@@ -42,13 +54,11 @@ const useChatStore = create(
           state.socket.close();
         }
 
-        // Only clear messages if room changes
-        const roomChanged = state.currentRoom !== roomName;
-
         set({
           shouldReconnect: true,
           currentRoom: roomName,
           isConnected: false,
+          hasHydratedHistory: roomChanged ? false : state.hasHydratedHistory,
           ...(roomChanged && {
             messages: [],
             lastTimestamp: null,
@@ -156,11 +166,24 @@ const useChatStore = create(
               }));
             } else if (data.type === "history") {
               set((state) => {
+                const historyMessages = Array.isArray(data.messages)
+                  ? data.messages
+                  : [];
+
+                if (!state.hasHydratedHistory) {
+                  return {
+                    messages: historyMessages,
+                    lastTimestamp: data.last_timestamp,
+                    hasMore: data.last_timestamp !== null,
+                    hasHydratedHistory: true,
+                  };
+                }
+
                 const existingTimestamps = new Set(
                   state.messages.map((msg) => msg.timestamp),
                 );
 
-                const newMessages = data.messages.filter(
+                const newMessages = historyMessages.filter(
                   (msg) => !existingTimestamps.has(msg.timestamp),
                 );
 
@@ -168,6 +191,7 @@ const useChatStore = create(
                   messages: [...newMessages, ...state.messages],
                   lastTimestamp: data.last_timestamp,
                   hasMore: data.last_timestamp !== null,
+                  hasHydratedHistory: true,
                 };
               });
             } else if (data.type === "presence") {
