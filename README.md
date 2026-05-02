@@ -41,8 +41,10 @@ graph TD
 ---
 
 ### 🛠️ Technology Stack
-
-CLASHCODE is built using a modern stack including React 19 and Vite for the frontend, and Python with FastAPI and Django for the backend services. We use PostgreSQL, DynamoDB, Pinecone, and Redis for data and caching. Everything is managed on AWS using Kubernetes (EKS), Docker, and Terraform.
+*   **Frontend**: React 19, Vite, Zustand, Tailwind CSS, Framer Motion
+*   **Backend**: Python (FastAPI, Django), Celery
+*   **Databases**: PostgreSQL, DynamoDB, Pinecone, Redis
+*   **Infrastructure**: Kubernetes (EKS), Docker, AWS, Terraform
 
 ---
 
