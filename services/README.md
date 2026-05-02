@@ -1,92 +1,52 @@
-# ⚔️ CLASHCODE - Backend Services
+# CLASHCODE - Backend Services
 
-A high-performance, distributed microservices architecture powering the **CLASHCODE** platform. Built with a focus on real-time engagement, AI-driven code analysis, and robust competitive scalability.
+| Architecture | Distributed Microservices |
+| --- | --- |
+| Gateway | NGINX / AWS ALB |
+| Communication | REST / gRPC / WebSockets |
 
----
+Distributed backend ecosystem powering the CLASHCODE arena. Focused on high-concurrency, secure code execution, and real-time state synchronization.
 
-## 🏛️ System Architecture
-
-The platform is designed as a modular ecosystem of specialized services. In local development, these services run as independent processes.
+## Architecture Topology
 
 ```mermaid
 graph TD
-    User((User)) -->|HTTPS/WSS :80| Nginx[NGINX Gateway]
-    Nginx -->|Auth/API :8000| Core[Django Core Service]
-    Nginx -->|Real-time :8001| Chat[FastAPI Chat/WS]
-    Nginx -->|GenAI :8002| AI[FastAPI AI Service]
+    Gateway[Gateway] -->|HTTP/WS| Core[Core API]
+    Gateway -->|WS| Chat[Chat Service]
+    Gateway -->|HTTP| AI[AI Service]
     
-    Core -->|Tasks| Celery[Celery Worker/Beat]
-    Core -->|SQL| DB[(Postgres :5432)]
+    Core -->|Async| Celery[Celery Worker]
+    Core -->|SQL| Postgres[(PostgreSQL)]
     
-    Chat -->|PubSub| Redis[(Redis :6379)]
-    Chat -->|NoSQL| Dynamo[(DynamoDB :8008)]
+    Chat -->|PubSub| Redis[(Redis)]
+    Chat -->|NoSQL| Dynamo[(DynamoDB)]
     
-    AI -->|RAG| VectorDB[(ChromaDB :8000)]
+    AI -->|RAG| Vector[(Vector DB)]
 ```
 
-| Service | Technology | Port | Role |
-| :--- | :--- | :--- | :--- |
-| **[Core](./core)** | Django / DRF | 8000 | Central API, Auth, DB, Payments, Celery Tasks. |
-| **[Chat](./chat)** | FastAPI / WS | 8001 | Real-time messaging, Presence tracking. |
-| **[AI](./ai)** | FastAPI / LangChain | 8002 | Challenge Generation, Code analysis. |
+## Service Catalog
 
----
+| Service | Stack | Function |
+| --- | --- | --- |
+| [Core](./core) | Django 5 | Primary business logic, Auth, DB orchestration. |
+| [Chat](./chat) | FastAPI | Real-time messaging, presence, history. |
+| [AI](./ai) | FastAPI | RAG-based analysis, automated hints. |
+| [Executor](./executor) | FastAPI | Sandboxed code evaluation. |
+| [Analytics](./analytics) | FastAPI | Metrics proxy and health monitoring. |
 
-## 🛠️ Technology Stack
+## Operations
 
-- **Core Frameworks**: Django 5.0, FastAPI
-- **Databases**: PostgreSQL, DynamoDB Local, ChromaDB (Vector)
-- **Real-time**: Redis & WebSockets
-- **Task Queue**: Celery with Redis Broker
+### Environment Configuration
+* Sync `.env` files across services based on `.env.example` templates.
+* Required: `JWT_PRIVATE_KEY`, `POSTGRES_PASSWORD`, `REDIS_URL`.
 
----
+### Orchestration (Development)
+* `docker compose up -d --build`
 
-## 🚀 Production-Style Docker Setup
+### Security Compliance
+* Container Sandboxing: Network-isolated Docker containers for user code.
+* gVisor Support: Harden isolation via `CONTAINER_RUNTIME=runsc`.
+* VPC Integrity: Services restricted to internal network segments.
 
-The supported deployment model is container-first. The Compose file builds and runs nginx, the production frontend image, Django, FastAPI services, Celery workers, the Python-only executor, and private backing services. Only nginx is published to the host.
-
-### 1. Configure Environment
-
-Create environment files from the examples and replace every placeholder.
-
-```bash
-cp .env.example .env
-cp core/.env.example core/.env
-cp chat/.env.example chat/.env
-cp ai/.env.example ai/.env
-```
-
-Set strong values for:
-
-- `POSTGRES_PASSWORD`
-- Django `SECRET_KEY`
-- `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`
-- `INTERNAL_API_KEY` and `INTERNAL_SIGNING_SECRET`
-- OAuth, SMTP, Cloudinary, Firebase, and Razorpay credentials
-
-### 2. Start Services
-
-```bash
-docker compose up -d --build
-```
-
-Compose runs migrations and `collectstatic` before starting Gunicorn. Databases, Redis, Chroma, DynamoDB, and the executor stay private on the Docker network.
-
-For stronger Python execution isolation, install gVisor on the Docker host and set `CONTAINER_RUNTIME=runsc` in `.env`.
-
----
-
-## 📂 Repository Structure
-
-```text
-├── core/           # Django project: Main logic, Auth, DB
-├── chat/           # FastAPI: Real-time WebSockets
-├── ai/             # FastAPI: AI-driven features & Vector RAG
-└── docker-compose.yml # Infrastructure only
-```
-
----
-
-## 📄 License
-
-This project is proprietary. All rights reserved.
+## License
+Proprietary. All rights reserved.

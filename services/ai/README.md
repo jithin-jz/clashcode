@@ -1,47 +1,33 @@
-# 🤖 AI & Code Analysis Service (FastAPI)
+# AI Service
 
-An intelligent agentic service that provides code explanation, optimization tips, and RAG-based context for coding challenges.
+| Framework | FastAPI |
+| --- | --- |
+| RAG | LangChain |
+| Vector DB | Pinecone / ChromaDB |
+| Provider | Groq / OpenAI |
 
-## ✨ Features
+Context-aware AI tutoring engine providing real-time code analysis and challenge hints using Retrieval-Augmented Generation (RAG).
 
-- **Large Language Model**: Powered by **Groq** (using Llama 3.3 70B) for ultra-fast responses.
-- **RAG (Retrieval Augmented Generation)**: Uses **ChromaDB** to inject relevant documentation and challenge context into the AI's memory.
-- **Asynchronous Processing**: Non-blocking requests for smooth code analysis.
-- **Streaming Responses**: (Optional) Instant feedback as the model generates.
+## Technical Specifications
 
-## 🚀 Running Local
+* Retrieval: Semantic search via vector embeddings
+* Analysis: Contextual code evaluation and feedback generation
+* Framework: LangChain with customized tool-chains
+* Interface: Asynchronous REST API
 
-```bash
-cd services/ai
-pip install -r requirements.txt
+## Integration Map
 
-# Start the service
-uvicorn main:app --host 0.0.0.0 --port 8002 --reload
-```
+* LLM Provider | Groq (Llama 3) / OpenAI (GPT-4)
+* Embedding | Text-embedding-3-small (OpenAI)
+* Data Source | Markdown-based challenge knowledge base
 
-## 🛠️ Tech Context
+## API Reference
 
-### RAG Pipeline
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| /api/ai/analyze | POST | Code evaluation and feedback |
+| /api/ai/hint | POST | Contextual challenge hint generation |
+| /health | GET | Service and Vector DB connectivity check |
 
-The service embeds your codebase and challenges into a vector space. When a user asks an AI question:
-
-1. The query is converted to an embedding.
-2. ChromaDB finds the most relevant code snippets/instructions.
-3. The LLM processes the query + retrieved context.
-
----
-
-## 🏗️ Technical Settings
-
-- **`MODEL_NAME`**: Default is `llama-3.3-70b-versatile`.
-- **`CHROMA_SERVER_HOST`**: Vector storage connection.
-- **`EMBEDDING_MODEL`**: `sentence-transformers/all-MiniLM-L6-v2`.
-
----
-
-## 📂 Structure
-
-- `main.py`: Main API entry point.
-- `ai_logic.py`: Prompt engineering and LLM interaction.
-- `vector_db.py`: ChromaDB integration and search logic.
-- `embeddings.py`: Model definitions for vectorization.
+## Deployment
+* Entrypoint: `uvicorn main:app --host 0.0.0.0 --port 8002`

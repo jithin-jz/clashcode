@@ -1,26 +1,32 @@
-# CLASHCODE Python Executor
+# Executor Service
 
-Internal Python-only execution service for challenge validation.
+| Framework | FastAPI |
+| --- | --- |
+| Isolation | Docker SDK |
+| Security | AST Validation |
 
-It replaces the previous privileged Piston container with a narrower runtime:
+Hardened code evaluation engine designed for secure execution of untrusted user-submitted logic.
 
-- Python only
-- no root user
-- read-only container filesystem
-- no Linux capabilities
-- per-run timeout, memory, file-size, process, and output limits
-- Python isolated mode (`-I`)
-- optional dangerous import blocking
-- optional gVisor runtime via `CONTAINER_RUNTIME=runsc`
+## Security Architecture
 
-## gVisor
+* Pre-validation: Abstract Syntax Tree (AST) analysis to prevent dangerous library imports.
+* Isolation: Network-less, non-root Docker containers with strict CPU/Memory quotas.
+* Ephemerality: One-shot container lifecycle for each execution request.
+* Fallback: Secure host-level execution available for container-less environments.
 
-Install gVisor on the Docker host and set this in `services/.env`:
+## API Reference
 
-```env
-CONTAINER_RUNTIME=runsc
-```
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| /api/execute | POST | Synchronous code evaluation |
+| /health | GET | Docker daemon and service status |
 
-Keep `CONTAINER_RUNTIME=runc` for local development if gVisor is not installed.
+## Technical Constraints
 
-This worker is still an internal service and should never be exposed publicly.
+* Timeout | 5000ms (Configurable)
+* Memory | 128MB (Configurable)
+* Network | Restricted (Egress Disabled)
+
+## Deployment
+* Required: Docker Socket (`/var/run/docker.sock`) mount access.
+* Entrypoint: `uvicorn main:app --host 0.0.0.0 --port 8003`

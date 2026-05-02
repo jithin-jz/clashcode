@@ -1,96 +1,34 @@
-# ⚙️ Core Service (Django)
+# Core Service
 
-The central heartbeat of the **CLASHCODE** ecosystem. This service manages user identities, persistence, transactions, and background task orchestration.
+| Framework | Django 5 / DRF |
+| --- | --- |
+| Database | PostgreSQL |
+| Tasks | Celery |
+| Payments | Razorpay |
 
-## ✨ Features
+Primary API service orchestrating authentication, profile management, gamification, and transaction logic.
 
-- **Advanced Auth**:
-  - OAuth 2.0 (Google & GitHub).
-  - OTP-based login (Email verification via AWS SES).
-  - Dual-mode JWT (Auth header + HttpOnly Cookies).
-- **Gamification Engine**: Logic for XP, Levels, and Leaderboards.
-- **Store & Payments**: Cosmetic item catalog with Razorpay integration.
-- **Notifications**: Firebase Cloud Messaging (FCM) push notification triggers.
-- **Async Processing**: Robust background tasks via Celery (Redis backend).
+## Technical Specifications
 
-## 🚀 Development Setup
+* Architecture: Service-View separation (Strict Business Logic Isolation)
+* Authentication: JWT with asymmetric signing (RSA)
+* Persistence: PostgreSQL with managed RDS integration
+* Async: Distributed task processing via Celery with Redis broker
 
-### 1. Prerequisites
+## Feature Map
 
-- Python 3.12+
-- Redis (running on default port)
-- PostgreSQL (or Supabase URL)
+* Authentication | OAuth2, JWT Rotation, Profile Orchestration
+* Gamification | XP Ledger, Level Management, Badge System
+* Commerce | Razorpay integration, Shop Inventory management
+* Challenges | Content loading via Markdown/YAML parsers
 
-### 2. Manual Setup
+## Management Commands
 
-```bash
-cd services/core
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+| Command | Description |
+| --- | --- |
+| python manage.py migrate | Database schema synchronization |
+| python manage.py load_challenges | Populate challenges from /challenges/content |
+| python manage.py collectstatic | Asset aggregation for production CDN |
 
-# Initial migrations
-python manage.py migrate
-
-# Seed data
-python manage.py load_levels   # Challenges
-python manage.py seed_store     # Store items
-
-# Start the server
-python manage.py runserver 8000
-```
-
-### 3. Running Workers
-
-```bash
-# Background task worker
-celery -A project worker -l info
-
-# Scheduled tasks (Leaderboard/Cleanup)
-celery -A project beat -l info
-```
-
-## 📊 Core API Endpoints
-
-| Endpoint | Method | Description |
-| :--- | :--- | :--- |
-| `/auth/otp/` | POST | Request login code. |
-| `/auth/login/` | POST | Verify OTP & get JWT. |
-| `/challenges/` | GET | List available coding challenges. |
-| `/store/items/` | GET | List cosmetic items. |
-| `/health/` | GET | Service status & healthcheck. |
-
----
-
-## 🏗️ Technical Notes
-
-### JWT Configuration
-
-Production should use **RS256** asymmetric keys.
-
-- **`JWT_PRIVATE_KEY`**: Used by Core to sign tokens.
-- **`JWT_PUBLIC_KEY`**: Shared with Chat/AI services to verify identity without database lookups.
-
-For local development, you can omit the RSA keys and set **`JWT_SHARED_SECRET`** instead. Core and Chat will automatically fall back to `HS256`.
-
-### Media Storage
-
-Cloudinary is supported for deployment, but local development now falls back to filesystem media storage when Cloudinary credentials are not provided.
-
-### Database Seeding
-
-The project bundles several management commands for bootstrapping production data:
-
-- `python manage.py createsuperuser`
-- `python manage.py load_levels` (requires `challenges/levels.py`)
-- `python manage.py seed_store` (requires `store/seed_store.py`)
-
----
-
-## 📂 Structure
-
-- `auth/`: Authentication logic & OAuth callback handlers.
-- `challenges/`: Level management and challenge definitions.
-- `notifications/`: Firebase push logic (utils.py).
-- `project/`: Main settings, WSGI/ASGI, and Celery config.
-- `store/`: Cosmetic items and purchase logic.
+## Deployment
+* Entrypoint: `gunicorn core.wsgi:application --bind 0.0.0.0:8000`
