@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Trophy, Play, ShoppingBag, Shield, User } from "lucide-react";
+import { Home, Award, Play, ShoppingBag, Shield, User } from "lucide-react";
 
 /**
  * MobileBottomNav component
@@ -18,9 +18,9 @@ const MobileBottomNav = ({
   const navItems = [
     { Icon: Home, label: "Home", action: () => navigate("/home") },
     {
-      Icon: Trophy,
-      label: "Ranks",
-      action: () => setLeaderboardOpen((p) => !p),
+      Icon: Award,
+      label: "Awards",
+      action: () => navigate("/achievements"),
     },
     {
       Icon: Play,

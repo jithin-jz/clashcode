@@ -140,10 +140,10 @@ const DesktopTopNav = ({
             {/* Mobile Hall/Check-in/Chat Shortcuts (Hidden on desktop) */}
             <div className="flex sm:hidden items-center gap-1">
               <button
-                onClick={() => navigate("/achievements")}
+                onClick={() => setLeaderboardOpen((p) => !p)}
                 className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white"
               >
-                <Award size={14} />
+                <Trophy size={14} />
               </button>
               <button
                 onClick={() => setCheckInOpen(true)}
