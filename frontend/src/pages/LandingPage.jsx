@@ -317,9 +317,6 @@ const LandingPage = () => {
                     Changelog
                   </li>
                   <li className="hover:text-white transition-colors cursor-pointer">
-                    Privacy Policy
-                  </li>
-                  <li className="hover:text-white transition-colors cursor-pointer">
                     Terms of Service
                   </li>
                 </ul>

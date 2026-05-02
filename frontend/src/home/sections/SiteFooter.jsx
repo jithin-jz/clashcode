@@ -2,7 +2,6 @@ import React from "react";
 import { Github, Linkedin, Twitter, Youtube } from "lucide-react";
 
 const legalLinks = [
-  { label: "Privacy", href: "#" },
   { label: "Terms", href: "#" },
   { label: "Contact", href: "#" },
 ];
