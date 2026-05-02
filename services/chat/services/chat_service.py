@@ -311,9 +311,10 @@ class ChatService:
         messages = result.get("items", [])
         last_key = result.get("last_evaluated_key")
 
+        from core.serializers import decimal_to_json
         return {
             "messages": [serialize_dynamo_message(room, msg) for msg in reversed(messages)],
-            "last_timestamp": last_key.get("timestamp") if last_key else None,
+            "last_timestamp": decimal_to_json(last_key.get("timestamp")) if last_key else None,
             "has_more": last_key is not None,
             "source": "dynamodb",
         }

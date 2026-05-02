@@ -46,12 +46,29 @@ class DynamoClient:
             else:
                 logger.info("DynamoDB connecting via IAM/Default chain")
 
+    async def verify_connection(self) -> bool:
+        """Quick check that DynamoDB credentials are valid."""
+        try:
+            async with self.session.client("dynamodb", **self.creds) as client:
+                await client.describe_table(TableName=self.table_name)
+            logger.info("DynamoDB connection verified for table '%s'", self.table_name)
+            return True
+        except ClientError as e:
+            code = e.response.get("Error", {}).get("Code", "Unknown")
+            logger.error("DynamoDB connection check FAILED (table=%s): %s — %s", self.table_name, code, e)
+            return False
+        except Exception as e:
+            logger.error("DynamoDB connection check FAILED: %s", e)
+            return False
+
     async def create_table_if_not_exists(self):
         try:
+            # Use client.list_tables() — compatible with aioboto3 v13+
+            async with self.session.client("dynamodb", **self.creds) as client:
+                response = await client.list_tables()
+                table_names = response.get("TableNames", [])
+
             async with self.session.resource("dynamodb", **self.creds) as dynamo:
-                # Check if ChatMessages table exists
-                tables = await dynamo.tables.all()
-                table_names = [t.name async for t in tables]
                 if self.table_name not in table_names:
                     await dynamo.create_table(
                         TableName=self.table_name,
@@ -69,6 +86,9 @@ class DynamoClient:
                         },
                     )
                     logger.info("Table %s created.", self.table_name)
+                else:
+                    logger.info("Table %s already exists.", self.table_name)
+
                 if "UserActivity" not in table_names:
                     await dynamo.create_table(
                         TableName="UserActivity",

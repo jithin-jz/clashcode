@@ -50,6 +50,17 @@ def health():
 
 @app.on_event("startup")
 async def on_startup():
+    # 1. Verify credentials are valid first
+    creds_ok = await dynamo_client.verify_connection()
+    if not creds_ok:
+        logger.critical(
+            "⚠️  DynamoDB credentials are INVALID. Chat persistence is DISABLED. "
+            "Check AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in 'backend-secrets' "
+            "or configure IRSA for the chat pod."
+        )
+        return  # Skip table creation — it will also fail
+
+    # 2. Ensure tables exist
     try:
         await dynamo_client.create_table_if_not_exists()
         logger.info("DynamoDB table ready")

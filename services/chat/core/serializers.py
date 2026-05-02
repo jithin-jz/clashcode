@@ -23,15 +23,28 @@ def serialize_timestamp(value: Any) -> Any:
     return datetime.fromtimestamp(float(value / divisor), tz=timezone.utc).isoformat()
 
 
+def decimal_to_json(obj: Any) -> Any:
+    """Recursively convert Decimal objects to int or float."""
+    if isinstance(obj, list):
+        return [decimal_to_json(i) for i in obj]
+    elif isinstance(obj, dict):
+        return {k: decimal_to_json(v) for k, v in obj.items()}
+    elif isinstance(obj, Decimal):
+        return int(obj) if obj % 1 == 0 else float(obj)
+    return obj
+
+
 def serialize_dynamo_message(room: str, item: dict) -> dict:
     """Safely serialize a DynamoDB item for the frontend."""
     timestamp = item.get("created_at") or item.get("iso_timestamp") or item.get("timestamp")
-    return {
-        "room": room,
-        "message": item.get("content", ""),
-        "user_id": item.get("user_id"),
-        "username": item.get("sender") or item.get("username") or "Unknown",
-        "avatar_url": item.get("avatar_url"),
-        "timestamp": serialize_timestamp(timestamp),
-        "reactions": item.get("reactions", {}),
-    }
+    return decimal_to_json(
+        {
+            "room": room,
+            "message": item.get("content", ""),
+            "user_id": item.get("user_id"),
+            "username": item.get("sender") or item.get("username") or "Unknown",
+            "avatar_url": item.get("avatar_url"),
+            "timestamp": serialize_timestamp(timestamp),
+            "reactions": item.get("reactions", {}),
+        }
+    )
