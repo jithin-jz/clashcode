@@ -8,6 +8,26 @@ When you first log in, you'll see a world of levels waiting for you. Every chall
 ### How we built it
 We wanted this to be as solid as it is fun. Under the hood, everything is split into small, focused services that talk to each other to keep the platform fast and reliable. We use Amazon EKS to manage everything in the cloud, so it stays smooth even when lots of people are coding at once. Safety is a big deal for us too. Whenever you run code, it happens in a secure, isolated space so you can experiment without any worries. We use DynamoDB to keep your messages safe and Redis to make sure everything feels instant.
 
+```mermaid
+graph TD
+    User[Frontend] --> ALB[ALB Ingress]
+    
+    subgraph Cluster [EKS Cluster]
+        ALB --> Core[Core: Django]
+        ALB --> Chat[Chat: FastAPI]
+        ALB --> AI[AI: FastAPI]
+        ALB --> Executor[Executor: FastAPI]
+        ALB --> Analytics[Analytics: FastAPI]
+    end
+    
+    subgraph Data [Persistence Layer]
+        Core --> RDS[(PostgreSQL)]
+        Core --> Redis[(Redis Cluster)]
+        Chat --> Dynamo[(DynamoDB)]
+        AI --> Vector[(Vector DB)]
+    end
+```
+
 ### Jumping in
 If you're here to play, just head over to the platform and start your first challenge. No complex setup is needed on your end.
 
