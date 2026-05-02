@@ -1,38 +1,92 @@
 # CLASHCODE
 
-CLASHCODE is a fun, game-like platform where you can practice coding and solve challenges. It’s built to feel like a video game—you clear levels, earn points, and chat with a community of coders while improving your skills.
+CLASHCODE is a fun, game-like platform where you can learn and practice coding. Instead of just reading text, you solve challenges to unlock new levels and move through a digital world. With real-time chat and an AI mentor to help when you're stuck, it’s the perfect place to build your skills and connect with other coders.
 
-### 🎮 What can you do?
-* **Solve Levels**: Progress through a world map by solving coding puzzles.
-* **Live Chat**: Talk to other developers and share tips in real-time.
-* **AI Tutor**: Get smart hints when you are stuck on a problem.
-* **Secure Arena**: Write and run your code safely in your browser.
+---
 
-### 🚀 Quick Start
-To get CLASHCODE running on your computer:
+### 🚀 Key Features
 
-1. **Clone the project**:
-   ```bash
-   git clone https://github.com/jithin-jz/clashcode.git
-   ```
+*   **🎮 Gamified Progression**: Master coding concepts through a dynamic, level-based game world.
+*   **🤝 Real-Time Chat**: Global messaging hub with presence tracking and persistent history via DynamoDB.
+*   **🤖 AI-Powered Mentorship**: RAG-based AI tutor providing contextual hints and automated code analysis.
+*   **⚡ Secure Execution**: Untrusted code is evaluated in network-isolated, ephemeral Docker containers.
+*   **📊 Analytics & Monitoring**: Real-time cluster telemetry and health diagnostics via Prometheus.
 
-2. **Start the backend**:
-   Go to the `services` folder and run:
-   ```bash
-   docker compose up -d
-   ```
+---
 
-3. **Start the frontend**:
-   Go to the `frontend` folder and run:
-   ```bash
-   npm install
-   npm run dev
-   ```
+### 🏗️ Architecture
 
-4. **Start playing**:
-   Open `http://localhost:5173` in your browser!
+CLASHCODE is orchestrated on **Amazon EKS** and leverages a distributed topology for maximum scalability.
+
+```mermaid
+graph TD
+    User[Frontend: React 19] --> ALB[AWS ALB Ingress]
+    
+    subgraph Cluster [Amazon EKS]
+        ALB --> Core[Core API: Django]
+        ALB --> Chat[Chat: FastAPI]
+        ALB --> AI[AI Service: FastAPI]
+        ALB --> Executor[Executor: FastAPI]
+        ALB --> Analytics[Analytics: FastAPI]
+    end
+    
+    subgraph Data [Persistence & Cache]
+        Core --> RDS[(PostgreSQL)]
+        Core --> Redis[(Redis Cluster)]
+        Chat --> Dynamo[(Amazon DynamoDB)]
+        AI --> Pinecone[(Vector DB)]
+    end
+```
+
+---
+
+### 🛠️ Technology Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, Vite, Zustand, Tailwind CSS 4, Framer Motion |
+| **Backend** | Python (FastAPI, Django), Celery |
+| **Databases** | PostgreSQL (RDS), DynamoDB, Pinecone, Redis |
+| **Infrastructure** | Kubernetes (EKS), Docker, AWS Secrets Manager, Terraform |
+
+---
+
+### 🏁 Quick Start
+
+#### 👾 For Players
+Access the platform via your configured ingress URL and create an account to start your journey.
+
+#### 🛠️ For Contributors
+Run the full stack locally using Docker Compose:
+
+1.  **Configure Environment**:
+    ```bash
+    # Set up environment variables for each service
+    cp .env.example .env
+    ```
+
+2.  **Launch Backend Services**:
+    ```bash
+    docker compose -f services/docker-compose.yml up -d --build
+    ```
+
+3.  **Launch Frontend Client**:
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
+
+---
+
+### 🔒 Security Posture
+
+*   **Isolation**: Untrusted code executes in network-isolated, non-root containers.
+*   **Secrets**: Managed via `external-secrets.io` with AWS Secrets Manager integration.
+*   **Identity**: Fine-grained resource access via IAM Roles for Service Accounts (IRSA).
+*   **Validation**: AST-based pre-validation for all submitted code snippets.
 
 ---
 
 ### 📄 License
-This project is under the MIT License.
+Licensed under the **MIT License**.
