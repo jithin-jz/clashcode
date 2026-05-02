@@ -42,12 +42,7 @@ graph TD
 
 ### 🛠️ Technology Stack
 
-| Layer | Technologies |
-| :--- | :--- |
-| **Frontend** | React 19, Vite, Zustand, Tailwind CSS 4, Framer Motion |
-| **Backend** | Python (FastAPI, Django), Celery |
-| **Databases** | PostgreSQL (RDS), DynamoDB, Pinecone, Redis |
-| **Infrastructure** | Kubernetes (EKS), Docker, AWS Secrets Manager, Terraform |
+CLASHCODE is built using a modern stack including React 19 and Vite for the frontend, and Python with FastAPI and Django for the backend services. We use PostgreSQL, DynamoDB, Pinecone, and Redis for data and caching. Everything is managed on AWS using Kubernetes (EKS), Docker, and Terraform.
 
 ---
 
