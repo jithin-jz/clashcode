@@ -436,10 +436,14 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = f"{FRONTEND_URL}/auth/google/callback"
 
 # Email Configuration
-# Default to SMTP if EMAIL_HOST is provided, otherwise fallback to Console for safety in dev
+# Use SMTP by default in production, fallback to console in dev if no host is configured
 _EMAIL_HOST = os.getenv("EMAIL_HOST")
-_DEFAULT_EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend" if _EMAIL_HOST else "django.core.mail.backends.console.EmailBackend"
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND") or _DEFAULT_EMAIL_BACKEND
+if os.getenv("EMAIL_BACKEND"):
+    EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
+elif _EMAIL_HOST or not DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_HOST = _EMAIL_HOST or "smtp.gmail.com"
 EMAIL_PORT = int(os.getenv("EMAIL_PORT") or "587")
 EMAIL_USE_TLS = _parse_bool(os.getenv("EMAIL_USE_TLS"), default=True)
