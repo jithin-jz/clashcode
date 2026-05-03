@@ -59,17 +59,21 @@ class DynamoClient:
             code = e.response.get("Error", {}).get("Code", "Unknown")
             
             # If explicit credentials fail with an invalid token, try falling back to IAM role/default chain
-            if code == "UnrecognizedClientException" and self.creds.get("aws_access_key_id"):
-                logger.warning("Explicit DynamoDB credentials failed with UnrecognizedClientException. Retrying with default IAM chain...")
+            if code == "UnrecognizedClientException" and (self.creds.get("aws_access_key_id") or os.environ.get("AWS_ACCESS_KEY_ID")):
+                logger.warning("Invalid credentials detected (UnrecognizedClientException). Purging env vars and falling back to default IAM chain...")
                 try:
-                    # Filter out explicit creds to let aioboto3 use the default chain
-                    fallback_creds = {k: v for k, v in self.creds.items() 
-                                     if k not in ["aws_access_key_id", "aws_secret_access_key", "aws_session_token"]}
-                    async with self.session.client("dynamodb", **fallback_creds) as client:
-                        await client.list_tables(Limit=1)
+                    # Clear explicit credentials and environment variables to force fallback
+                    self.creds = {}
+                    os.environ.pop("AWS_ACCESS_KEY_ID", None)
+                    os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
+                    os.environ.pop("AWS_SESSION_TOKEN", None)
                     
-                    logger.info("Connection successful via default IAM chain. Updating session configuration.")
-                    self.creds = fallback_creds
+                    # Re-initialize the session to ensure it picks up new credential chain state
+                    self.session = aioboto3.Session()
+                    
+                    async with self.session.client("dynamodb", **self.creds) as client:
+                        await client.list_tables(Limit=1)
+                    logger.info("DynamoDB connection verified via default IAM chain (after env purge)")
                     return True
                 except Exception as e2:
                     logger.error("Retry with default IAM chain also FAILED: %s", e2)
