@@ -3,7 +3,6 @@ namespace: clashcode
 resources:
   - ../../base
   - ./ingress.yaml
-  - ./secrets.yaml
 
 images:
   - name: core
