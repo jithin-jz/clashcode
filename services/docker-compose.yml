@@ -29,6 +29,22 @@ services:
 
   # ---------------- DATABASES ----------------
 
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
 
   redis:
     image: redis:7-alpine
@@ -81,6 +97,8 @@ services:
       INTERNAL_REQUIRE_SIGNATURE: ${INTERNAL_REQUIRE_SIGNATURE:-true}
       INTERNAL_SIGNING_SECRET: ${INTERNAL_SIGNING_SECRET:?Set INTERNAL_SIGNING_SECRET}
     depends_on:
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
       executor:
@@ -172,6 +190,8 @@ services:
       INTERNAL_REQUIRE_SIGNATURE: ${INTERNAL_REQUIRE_SIGNATURE:-true}
       INTERNAL_SIGNING_SECRET: ${INTERNAL_SIGNING_SECRET:?Set INTERNAL_SIGNING_SECRET}
     depends_on:
+      db:
+        condition: service_healthy
       core:
         condition: service_healthy
       redis:
@@ -196,6 +216,8 @@ services:
       INTERNAL_REQUIRE_SIGNATURE: ${INTERNAL_REQUIRE_SIGNATURE:-true}
       INTERNAL_SIGNING_SECRET: ${INTERNAL_SIGNING_SECRET:?Set INTERNAL_SIGNING_SECRET}
     depends_on:
+      db:
+        condition: service_healthy
       core:
         condition: service_healthy
       redis:
@@ -224,6 +246,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
       DB_PORT: ${DB_PORT:-6543}
     depends_on:
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
       core:
@@ -271,5 +295,6 @@ networks:
     name: clashcode_network
 
 volumes:
+  postgres_data:
   redis_data:
   dynamodb_data:
